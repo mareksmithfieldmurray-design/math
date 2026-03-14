@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Steve's Math Universe: Ultimate Logic (Blue 5-Group + Bridge Alignment + Hint)</title>
+  <style>
+    :root { --add-color:#2ecc71; --sub-color:#9b59b6; --mult-color:#e67e22; --word-color:#34495e; --ui-dark:#2c3e50; --n2-color:#e74c3c; --ten-color:#3498db; --bg:#f0f2f5; --ghost-color:#f1c40f; --comp-color:#f39c12; --build-color:#1abc9c; --shoot-color:#e91e63; --blue:#1e90ff; }
+    *{ box-sizing:border-box; }
+    body{ font-family:'Segoe UI',sans-serif; margin:0; background:var(--bg); display:flex; justify-content:center; align-items:center; min-height:100vh; overflow:hidden; }
+    #app-wrapper{ background:#fff; width:100%; max-width:1350px; height:98vh; border-radius:20px; display:flex; flex-direction:column; box-shadow:0 15px 50px rgba(0,0,0,.3); position:relative; overflow:hidden; }
+
+    /* Timer */
+    #top-timer-container{ width:100%; height:8px; background:#eee; position:relative; }
+    #timer-progress{ height:100%; width:0%; background:var(--n2-color); transition:width 1s linear; }
+
+    /* Header */
+    .header-strip{ background:var(--ui-dark); color:#fff; padding:10px 20px; display:flex; justify-content:space-between; align-items:center; z-index:10; }
+    .avatar-img{ height:45px; width:45px; border-radius:12px; border:2px solid #fff; cursor:pointer; background:#f9f9f9; object-fit:contain; }
+
+    /* Panels */
+    #settings-menu, #history-modal{ position:absolute; top:70px; right:10px; background:#fff; border:3px solid var(--ui-dark); padding:20px; border-radius:15px; z-index:1000; box-shadow:0 10px 40px rgba(0,0,0,.4); width:340px; max-height:85vh; overflow-y:auto; color:#333; }
+    #history-modal{ right:50%; transform:translateX(50%); width:90%; max-width:500px; display:none; }
+    .setting-row{ margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .setting-row input[type="number"]{ width:60px; padding:5px; border-radius:5px; border:1px solid #ccc; }
+
+    /* Screens & buttons */
+    .screen{ display:none; padding:15px; flex:1; flex-direction:column; align-items:center; overflow-y:auto; width:100%; }
+    .active{ display:flex; }
+    .btn{ padding:12px 20px; border:none; border-radius:12px; font-weight:bold; cursor:pointer; color:#fff; transition:.2s; text-decoration:none; text-align:center; font-size:.9rem; display:flex; align-items:center; justify-content:center; }
+    .btn-add{ background:var(--add-color); } .btn-sub{ background:var(--sub-color);} .btn-mult{ background:var(--mult-color);} .btn-word{ background:var(--word-color);} .btn-opt{ background:#eee; color:#333; border:1px solid #ccc; padding:8px 12px;} .btn-opt.selected{ background:var(--ui-dark); color:#fff; }
+    .module-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:15px; width:100%; max-width:800px; padding:10px; }
+    .module-divider{ width:100%; max-width:800px; border-top:4px solid #000; margin:25px 0; position:relative; }
+    .divider-text{ position:absolute; top:-12px; left:50%; transform:translateX(-50%); background:#fff; padding:0 15px; font-size:.8rem; font-weight:bold; color:#000; text-transform:uppercase; }
+
+    /* Multiplication (kept) */
+    .mult-wrapper{ display:flex; gap:30px; align-items:flex-start; justify-content:center; flex-wrap:wrap; width:100%; }
+    .mult-grid{ display:flex; flex-direction:column; gap:2px; background:#f9f9f9; padding:8px; border-radius:10px; border:1px solid #ddd; }
+    .mult-row{ display:flex; gap:2px; }
+    .mult-cell{ width:30px; height:30px; display:flex; align-items:center; justify-content:center; background:var(--mult-color); color:#fff; font-size:11px; font-weight:bold; border-radius:4px; }
+    .logic-step-box{ background:#fffde7; border:2px solid #fbc02d; padding:15px; border-radius:12px; font-family:'Courier New',monospace; min-width:180px; box-shadow:4px 4px 0 #fbc02d; }
+    .logic-line{ margin:5px 0; opacity:0; transition:opacity .5s; font-weight:bold; font-size:1.1rem; }
+    .logic-line.visible{ opacity:1; }
+    .block-num{ opacity:0; transition:opacity .3s; }
+    .block-num.visible{ opacity:1; }
+
+    /* Inputs */
+    .math-input{ font-size:50px; width:140px; text-align:center; border:4px solid var(--ui-dark); border-radius:12px; }
+    .arrow-btn{ width:50px; height:50px; border-radius:12px; font-size:20px; cursor:pointer; background:#fff; border:2px solid #ccc; }
+
+    @media (max-width:600px){ .module-grid{ grid-template-columns:1fr; } #q-text{ font-size:30px!important; } .mult-wrapper{ gap:15px; } }
+    .hidden{ display:none!important; }
+
+    /* =====================================
+       ADDITION visuals
+       ===================================== */
+    #visual-area{ position:relative; }
+    .visual-container{ margin:10px 0; display:flex; justify-content:center; align-items:flex-start; }
+    .label-column{ display:flex; flex-direction:column; align-items:flex-end; margin-right:10px; }
+    .block-label{ font-weight:bold; margin-right:10px; min-width:80px; text-align:right; font-size:16px; color:#333; }
+    .empty-count{ font-size:14px; font-style:italic; color:#666; margin-top:4px; }
+    .square-block{ text-align:left; }
+    .square-row{ display:flex; align-items:center; margin-bottom:4px; }
+    .row-label{ font-weight:bold; margin-left:10px; min-width:50px; text-align:left; font-size:12px; }
+
+    .square{ width:22px; height:22px; background-color:#4CAF50; display:inline-block; margin:2px; position:relative; opacity:1; transition:background-color .5s ease, opacity .5s ease; }
+    .square.empty{ background-color:#fff; border:2px dashed #7f8c8d; }
+    .square.red{ background-color:#e74c3c; opacity:0; animation: fadeIn .5s forwards; }
+    .square.blue{ background-color: var(--blue); }
+
+    @keyframes fadeIn{ to{ opacity:1; } }
+
+    /* Bridge table with 5 columns representing the last group */
+    .bridge-wrapper{ display:flex; flex-direction:column; align-items:center; margin:10px 0; }
+    .bridge-caption{ font-weight:700; color:#2c3e50; margin-bottom:6px; }
+    .bridge-table{ border-collapse:collapse; }
+    .bridge-table td{ border:3px solid #2c3e50; padding:8px 12px; width:42px; height:56px; }
+    .bridge-cell{ text-align:center; vertical-align:middle; }
+    .bridge-box{ width:24px; height:24px; display:inline-block; border-radius:2px; }
+    .bridge-empty{ background:#fff; border:2px dashed #7f8c8d; }
+    .bridge-blue{ background: var(--blue); }
+    .bridge-red{ background:#e74c3c; box-shadow:0 0 0 2px rgba(231,76,60,.15) inset; }
+
+    /* Connectors */
+    #arrowOverlay{ position:absolute; inset:0; pointer-events:none; }
+    #arrowOverlay .conn{ stroke: var(--blue); stroke-width:6; fill:none; filter: drop-shadow(0 0 4px rgba(30,144,255,.6)); }
+    #arrowOverlay .connHead{ fill: var(--blue); }
+
+    /* Decomposition under equation */
+    .five-decomp { font-size: 0.95rem; color:#555; display:flex; gap:20px; justify-content:center; margin-top:6px; }
+    .five-decomp .npart { background:#f7f9fb; border:1px solid #e1e7ef; border-radius:8px; padding:6px 10px; }
+    .five-decomp .tag { font-weight:700; color:#2c3e50; margin-right:6px; }
+
+    /* Hint button */
+    #hint-btn { background:#3498db; }
+  </style>
+</head>
+<body>
+  <div id="app-wrapper">
+    <div id="top-timer-container"><div id="timer-progress"></div></div>
+
+    <div class="header-strip">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <button class="btn btn-opt" onclick="goHome()">🏠 Menu</button>
+        <img src="steve.png" id="current-avatar" class="avatar-img" onclick="toggleSettings()" />
+        <div>
+          <span id="score-val" style="font-weight:bold; font-size:.9rem;">Score: 0</span><br />
+          <span id="exercise-count" style="font-size:.7rem; color:#ccc;">0/0</span>
+        </div>
+      </div>
+      <div id="mode-tag" style="font-size:.7rem; font-weight:bold; color:#f1c40f;">LEARN MODE</div>
+      <button class="btn btn-opt" onclick="toggleSettings()">⚙️</button>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="settings-menu" class="hidden">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="margin:0;">Settings</h3>
+        <span style="font-size:.7rem; color:#888;">Ver 2.2</span>
+      </div>
+      <hr />
+      <button class="btn btn-opt" style="width:100%; margin-bottom:10px; background:#3498db; color:#fff;" onclick="toggleHistory()">📜 View Version Changes</button>
+      <div style="font-weight:bold; margin-bottom:5px;">App Mode:</div>
+      <div style="display:flex; gap:5px; margin-bottom:15px;">
+        <button id="mode-learn" class="btn btn-opt selected" style="flex:1" onclick="setMode('learn')">LEARN</button>
+        <button id="mode-quiz" class="btn btn-opt" style="flex:1" onclick="setMode('quiz')">QUIZ</button>
+      </div>
+      <div class="setting-row"><span>Timer:</span><input type="checkbox" id="cfg-timer-on" onchange="state.timerEnabled=this.checked" /></div>
+      <div class="setting-row"><span>Time (s):</span><input type="number" id="cfg-time" value="30" /></div>
+      <div class="setting-row"><span>Exercises:</span><input type="number" id="cfg-total" value="10" /></div>
+      <hr />
+      <div style="font-weight:bold; margin-bottom:5px;">Range:</div>
+      <div class="setting-row"><span>Min:</span><input type="number" id="cfg-min" value="1" /></div>
+      <div class="setting-row"><span>Max:</span><input type="number" id="cfg-max" value="10" /></div>
+      <hr />
+      <div style="font-weight:bold; margin-bottom:5px;">Multiplication Logic:</div>
+      <div class="setting-row"><span>Show Numbers:</span><input type="checkbox" id="cfg-mult-numbers" checked onchange="state.showMultNumbers=this.checked" /></div>
+      <div class="setting-row"><span>How to Count:</span><input type="checkbox" id="cfg-show-logic" checked onchange="state.showLogicBox=this.checked" /></div>
+      <div class="setting-row"><span>Ghost Delay (s):</span><input type="number" id="cfg-mult-delay" value="2" /></div>
+      <hr />
+      <button class="btn btn-add" style="width:100%" onclick="saveSettings()">Save & Close</button>
+    </div>
+
+    <!-- HISTORY -->
+    <div id="history-modal">
+      <h3 style="margin-top:0;">Version History</h3>
+      <div style="font-size:.9rem; line-height:1.4;">
+        <strong>v2.2</strong>: Immediate settings application (no delay).<br />
+        <strong>v2.1</strong>: Restored Learn/Quiz modes; Quiz hides logic visuals.<br />
+        <strong>v2.0</strong>: Corrected Header Comment grammar; Synced change log.<br />
+        <strong>v1.9</strong>: Added Version History window & Top Comment sync.<br />
+        <strong>v1.8</strong>: Added Number Shooter & "How to Count" Toggle.
+      </div>
+      <hr />
+      <button class="btn btn-sub" style="width:100%" onclick="toggleHistory()">Close History</button>
+    </div>
+
+    <!-- PORTAL -->
+    <div id="portal" class="screen active">
+      <h1 style="color:var(--ui-dark); text-align:center; margin:10px 0;">Steve's Math Universe</h1>
+      <div class="module-grid">
+        <button class="btn btn-add" onclick="launch('add')">ADDITION</button>
+        <button class="btn btn-sub" onclick="launch('sub')">SUBTRACTION</button>
+        <button class="btn btn-mult" onclick="launch('mult')">MULTIPLICATION</button>
+        <button class="btn" style="background:var(--comp-color);" onclick="launch('comp')">COMPARE</button>
+      </div>
+      <div class="module-divider"><span class="divider-text">Additional Modules</span></div>
+      <div class="module-grid">
+        <a href="wordproblemsmode.html" class="btn btn-word">📖 MATH READING QUESTIONS</a>
+        <a href="buildermode.html" class="btn" style="background:var(--build-color);">🏗️ NUMBER BLOCK BUILDER</a>
+        <a href="numbershooter.html" class="btn" style="background:var(--shoot-color); grid-column:span 2;">🎯 NUMBER SHOOTER</a>
+      </div>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="game-screen" class="screen">
+      <div id="logic-pane" style="width:100%; max-width:900px; background:#fff; padding:15px; border-radius:15px; border:2px solid #ddd; display:flex; flex-direction:column; align-items:center;">
+        <h1 id="q-text" style="font-size:40px; margin:0;"></h1>
+        <!-- Decomposition under the equation -->
+        <div id="five-decomp" class="five-decomp hidden"></div>
+        <div id="visual-area" style="width:100%; margin-top:15px;"></div>
+      </div>
+
+      <div style="width:100%; max-width:520px; display:flex; flex-direction:column; align-items:center; margin-top:15px; gap:8px;">
+        <div id="feedback-emoji" style="font-size:50px; height:60px;"></div>
+
+        <div id="standard-input-ui" style="display:flex; align-items:center; gap:10px;">
+          <button class="arrow-btn" onclick="step(-1)">▼</button>
+          <input type="number" id="math-ans" class="math-input" placeholder="?" />
+          <button class="arrow-btn" onclick="step(1)">▲</button>
+        </div>
+
+        <div id="comp-input-ui" class="hidden" style="display:flex; gap:10px;">
+          <button class="comp-btn" onclick="selectSymbol('<')"><</button>
+          <button class="comp-btn" onclick="selectSymbol('=')">=</button>
+          <button class="comp-btn" onclick="selectSymbol('>')">></button>
+        </div>
+
+        <div id="msg-box" style="margin:6px; font-weight:bold; text-align:center; height:20px;"></div>
+
+        <button id="hint-btn" class="btn hidden" onclick="showHintSum()">💡 Hint: Visual Sum</button>
+
+        <div style="display:flex; gap:10px;">
+          <button id="check-btn" class="btn" style="background: var(--ui-dark); width: 200px;" onclick="verify()">Check Answer</button>
+          <button id="next-btn" class="btn btn-add hidden" style="width: 200px;" onclick="nextQ()">Next →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let state = { world:'add', mode:'learn', min:1, max:10, n1:0, n2:0, ans:0, score:0,
+                  timerEnabled:false, timeLimit:30, totalExercises:10, currentIdx:0,
+                  multDelay:2, showMultNumbers:true, showLogicBox:true, timerId:null,
+                  selectedSymbol:'' };
+
+    function toggleSettings(){ document.getElementById('settings-menu').classList.toggle('hidden'); }
+    function toggleHistory(){ const m=document.getElementById('history-modal'); m.style.display=(m.style.display==='block')?'none':'block'; }
+    function setMode(m){ state.mode=m; document.getElementById('mode-learn').classList.toggle('selected',m==='learn'); document.getElementById('mode-quiz').classList.toggle('selected',m==='quiz'); document.getElementById('mode-tag').textContent=m.toUpperCase()+" MODE"; }
+    function goHome(){ clearInterval(state.timerId); document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById('portal').classList.add('active'); }
+
+    function saveSettings(){
+      state.timeLimit= parseInt(document.getElementById('cfg-time').value) || 30;
+      state.totalExercises= parseInt(document.getElementById('cfg-total').value) || 10;
+      state.min= parseInt(document.getElementById('cfg-min').value);
+      state.max= parseInt(document.getElementById('cfg-max').value);
+      state.multDelay= parseInt(document.getElementById('cfg-mult-delay').value);
+      state.showMultNumbers= document.getElementById('cfg-mult-numbers').checked;
+      state.showLogicBox= document.getElementById('cfg-show-logic').checked;
+      state.timerEnabled= document.getElementById('cfg-timer-on').checked;
+      toggleSettings();
+      if (document.getElementById('game-screen').classList.contains('active') && document.getElementById('next-btn').classList.contains('hidden')){
+        refreshCurrentVisuals(); startTimer();
+      }
+    }
+
+    function launch(w){ state.world=w; state.currentIdx=0; state.score=0; nextQ(); }
+    function step(v){ const i=document.getElementById('math-ans'); i.value=Math.max(0,(parseInt(i.value)||0)+v); }
+    function selectSymbol(s){ state.selectedSymbol=s; const box=document.getElementById('target-box'); if(box){ box.textContent=s; box.style.color="var(--mult-color)"; box.style.borderColor="var(--mult-color)"; } }
+
+    function startTimer(){
+      clearInterval(state.timerId);
+      const bar=document.getElementById('timer-progress');
+      if(!state.timerEnabled){ bar.style.width='0%'; return; }
+      let remaining=state.timeLimit; bar.style.width='100%';
+      state.timerId=setInterval(()=>{ remaining--; bar.style.width=(remaining/state.timeLimit*100)+'%'; if(remaining<=0){ clearInterval(state.timerId); verify(true); } },1000);
+    }
+
+    function nextQ(){
+      state.currentIdx++;
+      if(state.currentIdx>state.totalExercises){ alert('Session Over! Score: '+state.score); goHome(); return; }
+      document.getElementById('exercise-count').textContent=`${state.currentIdx}/${state.totalExercises}`;
+      document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+      document.getElementById('game-screen').classList.add('active');
+      document.getElementById('next-btn').classList.add('hidden');
+      document.getElementById('check-btn').classList.remove('hidden');
+      document.getElementById('msg-box').textContent='';
+      document.getElementById('feedback-emoji').textContent='';
+      document.getElementById('math-ans').value='';
+      document.getElementById('math-ans').disabled=false;
+      document.getElementById('hint-btn').classList.add('hidden');
+      state.selectedSymbol='';
+      state.n1= Math.floor(Math.random()*(state.max-state.min+1))+state.min;
+      state.n2= Math.floor(Math.random()*(state.max-state.min+1))+state.min;
+      refreshCurrentVisuals();
+      startTimer();
+    }
+
+    function refreshCurrentVisuals(){
+      const standardUI=document.getElementById('standard-input-ui');
+      const compUI=document.getElementById('comp-input-ui');
+      const hintBtn=document.getElementById('hint-btn');
+      const decompDiv=document.getElementById('five-decomp');
+
+      if(state.world==='comp'){
+        document.getElementById('q-text').textContent='Compare';
+        standardUI.classList.add('hidden'); compUI.classList.remove('hidden'); drawComparison();
+        hintBtn.classList.add('hidden'); decompDiv.classList.add('hidden');
+      } else {
+        standardUI.classList.remove('hidden'); compUI.classList.add('hidden');
+
+        if(state.world==='add'){
+          state.ans= state.n1 + state.n2;
+          document.getElementById('q-text').textContent=`${state.n1} + ${state.n2}`;
+          if(state.mode==='learn'){
+            const d1 = decomposeToFives(state.n1);
+            const d2 = decomposeToFives(state.n2);
+            decompDiv.innerHTML = `<div class="npart"><span class="tag">${state.n1} =</span>${d1}</div><div class="npart"><span class="tag">${state.n2} =</span>${d2}</div>`;
+            decompDiv.classList.remove('hidden');
+          } else { decompDiv.classList.add('hidden'); }
+
+          state.mode==='learn' ? drawAddition() : document.getElementById('visual-area').innerHTML='';
+          if(state.mode==='learn') hintBtn.classList.remove('hidden');
+        } else if(state.world==='sub'){
+          if(state.n1<state.n2) [state.n1,state.n2]=[state.n2,state.n1];
+          state.ans= state.n1 - state.n2;
+          document.getElementById('q-text').textContent=`${state.n1} - ${state.n2}`;
+          decompDiv.classList.add('hidden');
+          state.mode==='learn' ? drawSubtraction() : document.getElementById('visual-area').innerHTML='';
+          hintBtn.classList.add('hidden');
+        } else if(state.world==='mult'){
+          if(state.n1>12) state.n1=12;
+          state.ans= state.n1 * state.n2;
+          document.getElementById('q-text').textContent=`${state.n1} × ${state.n2}`;
+          decompDiv.classList.add('hidden');
+          state.mode==='learn' ? drawMultiplication() : document.getElementById('visual-area').innerHTML='';
+          hintBtn.classList.add('hidden');
+        }
+      }
+    }
+
+    function drawMultiplication(){
+      const area=document.getElementById('visual-area');
+      let gridHTML='<div class="mult-grid">';
+      let logicHTML=`<div class="logic-step-box ${state.showLogicBox ? '' : 'hidden'}"><strong>How to count:</strong><hr style="border:1px solid #fbc02d;">`;
+      let cellCount=1;
+      for(let r=1;r<=state.n1;r++){
+        gridHTML+='<div class="mult-row">';
+        for(let c=1;c<=state.n2;c++){
+          const isLast=(cellCount===state.n1*state.n2);
+          const display=(state.showMultNumbers && !isLast) ? cellCount : (isLast?'?':'');
+          gridHTML+=`<div class="mult-cell"><span class="block-num row-${r}">${display}</span></div>`; cellCount++;
+        }
+        gridHTML+='</div>';
+        if(r<state.n1){ logicHTML+=`<div class="logic-line row-${r}">${r} × ${state.n2} = ${r*state.n2}</div>`; }
+        else { logicHTML+=`<div class="logic-line row-${r}">${r} × ${state.n2} = ?</div>`; }
+      }
+      gridHTML+='</div>'; logicHTML+='</div>';
+      area.innerHTML=`<div class="mult-wrapper">${gridHTML}${logicHTML}</div>`;
+      const delay=(state.mode==='quiz')?0:state.multDelay;
+      setTimeout(()=>{ for(let r=1;r<=state.n1;r++){ setTimeout(()=>{ let els=document.querySelectorAll(`.row-${r}`); if(els.length) els.forEach(el=>el.classList.add('visible')); }, (r-1)*(delay*1000/state.n1)); } },100);
+    }
+
+    // ---------- ADDITION helpers ----------
+    function decomposeToFives(n){
+      if(n<=5) return (n===5) ? '5' : `${n}`;
+      let parts=[]; let remaining=n;
+      while(remaining>=5){ parts.push('5'); remaining-=5; }
+      if(remaining>0) parts.push(String(remaining));
+      return parts.join(' + ');
+    }
+
+    function renderHorizontal(containerId,count,redCount,applyRed=false){
+      const container=document.getElementById(containerId); container.innerHTML='';
+      let emptySquares=0; const rows=[]; const fullSquares=[];
+      for(let i=0;i<count;i+=5){
+        const squaresInRow=Math.min(5,count-i);
+        const row=document.createElement('div'); row.className='square-row';
+        const rowSquares=[];
+        for(let j=0;j<5;j++){
+          const sq=document.createElement('div'); sq.className='square';
+          if(j>=squaresInRow){ sq.classList.add('empty'); emptySquares++; }
+          else { fullSquares.push(sq); rowSquares.push(sq); }
+          row.appendChild(sq);
+        }
+        const label=document.createElement('div'); label.className='row-label'; label.textContent=squaresInRow; row.appendChild(label);
+        container.appendChild(row);
+        rows.push({el:row, label, fullCount:squaresInRow, rowSquares});
+      }
+      if(applyRed){
+        for(let i=fullSquares.length-1; i>=0 && redCount>0; i--, redCount--){ fullSquares[i].classList.add('red'); }
+      }
+      return { emptySquares, rows };
+    }
+
+    function drawAddition(){
+      document.getElementById('visual-area').innerHTML=`
+        <svg id="arrowOverlay"></svg>
+        <div class="visual-container" id="vc1">
+          <div class="label-column">
+            <div class="block-label" id="labelNum1"></div>
+            <div class="empty-count" id="emptyCount1"></div>
+          </div>
+          <div class="square-block" id="visualNum1"></div>
+        </div>
+        <div class="visual-container" id="vc2">
+          <div class="label-column">
+            <div class="block-label" id="labelNum2"></div>
+            <div class="empty-count" id="emptyCount2"></div>
+          </div>
+          <div class="square-block" id="visualNum2"></div>
+        </div>
+        <div id="bridgeWrapper" class="bridge-wrapper hidden"></div>
+        <h3 id="sumLabel" class="hidden">Visual Sum</h3>
+        <div class="visual-container hidden" id="sumContainer">
+          <div class="label-column"><div class="block-label" id="labelSum"></div></div>
+          <div class="square-block" id="visualSum"></div>
+        </div>`;
+
+      document.getElementById('labelNum1').textContent=`Total: ${state.n1}`;
+      document.getElementById('labelNum2').textContent=`Total: ${state.n2}`;
+
+      const n1Info= renderHorizontal('visualNum1', state.n1, 0, false);
+      const remainder= state.n1 % 5;
+      const neededToFive= remainder===0 ? 0 : (5 - remainder);
+      const moveCount= Math.min(neededToFive, state.n2);
+
+      // If not full 5 in n1's last group, color its existing squares in that row BLUE
+      if(remainder!==0 && n1Info.rows.length>0){
+        const lastRow = n1Info.rows[n1Info.rows.length - 1];
+        // existing filled squares are first 'remainder' squares
+        for(let i=0;i<lastRow.rowSquares.length;i++){
+          lastRow.rowSquares[i].classList.add('blue');
+        }
+      }
+
+      const n2Info= renderHorizontal('visualNum2', state.n2, moveCount, true);
+
+      // Update per-row label on n2 to show split (X = (X-take) + take)
+      if(moveCount>0){
+        let remaining=moveCount;
+        for(let r = n2Info.rows.length - 1; r >= 0 && remaining>0; r--){
+          const row = n2Info.rows[r];
+          const available = row.fullCount;
+          if(available<=0) continue;
+          const take = Math.min(available, remaining);
+          row.label.innerHTML = `${available} = ${available - take} + <span style="color:#e74c3c; font-weight:700;">${take}</span>`;
+          remaining -= take;
+        }
+      }
+
+      requestAnimationFrame(()=>{
+        buildFiveBridge(neededToFive, remainder, moveCount);
+      });
+
+      const emptyCount1=document.getElementById('emptyCount1'); if(emptyCount1) emptyCount1.textContent=`Empty: ${n1Info.emptySquares}`;
+      const emptyCount2=document.getElementById('emptyCount2'); if(emptyCount2) emptyCount2.textContent='';
+    }
+
+    // Build a 5-column bridge representing the last 5-group of n1
+    // Top row: first 'remainder' BLUE boxes (existing), then (5-remainder) EMPTY placeholders
+    // Bottom row: place RED donors only under the EMPTY columns (left-to-right up to moveCount)
+    function buildFiveBridge(neededToFive, remainder, moveCount){
+      const wrap = document.getElementById('bridgeWrapper');
+      if(!wrap) return;
+      if(remainder===0 || moveCount===0){ wrap.classList.add('hidden'); wrap.innerHTML=''; return; }
+      wrap.classList.remove('hidden');
+
+      const caption = `<div class="bridge-caption">Complete the five-group: ${remainder} (blue) + ${moveCount} (red) → 5</div>`;
+
+      let rowTop = '<tr id="bridgeRowTop">';
+      let rowBottom = '<tr id="bridgeRowBottom">';
+
+      // Build 5 columns
+      for(let col=0; col<5; col++){
+        const isExisting = col < remainder;              // existing filled in n1
+        const isEmptySlot = col >= remainder;            // needs donor
+        const donorSlotIndex = col - remainder;          // 0-based among empty slots
+        const placeRed = isEmptySlot && donorSlotIndex < moveCount; // only for first moveCount empties
+
+        // top cell
+        let topBoxClass = isExisting ? 'bridge-blue' : 'bridge-empty';
+        rowTop += `<td class="bridge-cell"><div class="bridge-box ${topBoxClass}" data-col="${col}"></div></td>`;
+
+        // bottom cell
+        let bottomBox = placeRed ? `<div class="bridge-box bridge-red" data-col="${col}"></div>` : '';
+        rowBottom += `<td class="bridge-cell">${bottomBox}</td>`;
+      }
+
+      rowTop += '</tr>'; rowBottom += '</tr>';
+      wrap.innerHTML = `${caption}<table class="bridge-table"><tbody>${rowTop}${rowBottom}</tbody></table>`;
+
+      // Draw connectors from each RED donor to corresponding EMPTY slot above (same column)
+      drawBridgeConnectorsByColumn();
+    }
+
+    function drawBridgeConnectorsByColumn(){
+      const overlay = document.getElementById('arrowOverlay');
+      if(!overlay) return; overlay.innerHTML='';
+
+      // build arrowhead
+      const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
+      const marker = document.createElementNS('http://www.w3.org/2000/svg','marker');
+      marker.setAttribute('id','connHead'); marker.setAttribute('markerWidth','10'); marker.setAttribute('markerHeight','10'); marker.setAttribute('refX','5'); marker.setAttribute('refY','3'); marker.setAttribute('orient','auto');
+      const head = document.createElementNS('http://www.w3.org/2000/svg','path'); head.setAttribute('d','M0,0 L6,3 L0,6 Z'); head.setAttribute('class','connHead');
+      marker.appendChild(head); defs.appendChild(marker); overlay.appendChild(defs);
+
+      const ovRect = overlay.getBoundingClientRect();
+      const topCells = document.querySelectorAll('#bridgeRowTop .bridge-box');
+      const bottomCells = document.querySelectorAll('#bridgeRowBottom .bridge-box.bridge-red');
+
+      bottomCells.forEach(bot => {
+        const col = bot.getAttribute('data-col');
+        const top = Array.from(topCells).find(t => t.getAttribute('data-col') === col && t.classList.contains('bridge-empty'));
+        if(!top) return;
+        const tR = top.getBoundingClientRect();
+        const bR = bot.getBoundingClientRect();
+        const x1 = bR.left + bR.width/2 - ovRect.left;
+        const y1 = bR.top  + bR.height/2 - ovRect.top;
+        const x2 = tR.left + tR.width/2 - ovRect.left;
+        const y2 = tR.top  + tR.height/2 - ovRect.top;
+        const cx = (x1 + x2)/2; const cy = Math.min(y1, y2) - 30;
+        const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+        path.setAttribute('d', `M ${x1},${y1} Q ${cx},${cy} ${x2},${y2}`);
+        path.setAttribute('class','conn'); path.setAttribute('marker-end','url(#connHead)');
+        overlay.appendChild(path);
+      });
+    }
+
+    // Visual Sum hint: render total, but keep the ADDED amount (n2) in BLUE
+    function showHintSum(){
+      const sumLabel = document.getElementById('sumLabel');
+      const sumContainer = document.getElementById('sumContainer');
+      if(!sumLabel || !sumContainer) return;
+      sumLabel.classList.remove('hidden');
+      sumContainer.classList.remove('hidden');
+
+      const total = state.n1 + state.n2;
+      document.getElementById('labelSum').textContent = `Total: ${total}`;
+
+      // First render all as green
+      renderHorizontal('visualSum', total, 0, false);
+
+      // Then color the ADDED number (n2) blocks BLUE at the tail end
+      const rows = document.querySelectorAll('#visualSum .square-row');
+      // Collect all filled squares in order
+      const filled = [];
+      rows.forEach(r => {
+        const sqs = r.querySelectorAll('.square:not(.empty)');
+        sqs.forEach(s => filled.push(s));
+      });
+      // Color last n2 squares blue
+      for(let i = filled.length - 1; i >= 0 && (filled.length - 1 - i) < state.n2; i--){
+        filled[i].classList.add('blue');
+      }
+
+      sumLabel.scrollIntoView({ behavior:'smooth', block:'center' });
+    }
+
+    function drawSubtraction(){
+      document.getElementById('visual-area').innerHTML = `<div style="text-align:center; font-size:1.2rem;">Visualize taking ${state.n2} units away from ${state.n1}.</div>`;
+    }
+
+    function drawComparison(){
+      document.getElementById('visual-area').innerHTML = `
+        <div style="display:flex; align-items:center; gap:20px; font-size:50px; font-weight:bold; justify-content:center;">
+          <div>${state.n1}</div>
+          <div id="target-box" class="comp-target" style="width:80px; height:80px; border:3px dashed #ccc; border-radius:10px; display:flex; align-items:center; justify-content:center;">?</div>
+          <div>${state.n2}</div>
+        </div>`;
+    }
+
+    function verify(isTimeout=false){
+      clearInterval(state.timerId);
+      let correct=false;
+      if(state.world==='comp'){
+        const actual= state.n1<state.n2 ? '<' : (state.n1>state.n2 ? '>' : '=');
+        correct=(state.selectedSymbol===actual);
+      } else {
+        correct=(parseInt(document.getElementById('math-ans').value)===state.ans);
+      }
+      if(!isTimeout && correct){ state.score++; document.getElementById('feedback-emoji').textContent='🏆'; document.getElementById('msg-box').textContent='Excellent!'; }
+      else { document.getElementById('feedback-emoji').textContent='😟'; document.getElementById('msg-box').textContent= isTimeout?"Time's Up!" : (state.world==='comp'? 'Answer: Check the symbol' : ('Answer: '+state.ans)); }
+
+      if(state.world==='add' && state.mode==='learn'){ showHintSum(); }
+      document.getElementById('score-val').textContent='Score: '+state.score;
+      document.getElementById('check-btn').classList.add('hidden');
+      document.getElementById('next-btn').classList.remove('hidden');
+      document.getElementById('math-ans').disabled=true;
+      document.getElementById('hint-btn').classList.add('hidden');
+    }
+
+    window.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ if(!document.getElementById('next-btn').classList.contains('hidden')) nextQ(); else verify(); } });
+  </script>
+
+  <!-- MAIN CRITICAL COMMENT MENU - DO NOT REMOE THIS COMMENT, NEVER, EVER, ASK, STOP AND ASK!!
+       YOU DO NOT HAVE RIGHT TO REMOVE IT AS IT CODE WILL BE DESTROYED ( CORREC ONLY THE GRAMMER OF THI COMMMENT)
+       !!! ADD AL MY REQUESTS ABOUT NOT REMOVING THINGS TO THIS SECTION BELOW WITH NUMBER AND DATE, TIME.
+       1. DO NOT REMOVE BACK TO MAIN MENU BUTTON
+       2. DO NOT REMOVE ANYTHING FROM THE SETTINGS, IF ASKED TO CHANGE EXPLAIN IMPLICATIONS BUT DO NOT CHANGE EXISTING.
+       3. DO NOT REMOVE ANYTHING FROM THE CODE BELOW WITHOUT ASKING OR SPECIFIC REQUEST. IF NOT CLEAR ASK IF YOU NDERSTAND IT RIGHT BEFORE REMOVING.
+       4. DO NOT REMOVE LEARN AND QUIZ MODES AND ALWAYS KEEP THEM IN THE SETTINGS
+  -->
+</body>
+</html>
