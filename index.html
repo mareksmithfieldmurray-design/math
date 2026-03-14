@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Steve's Math Universe: Ultimate Logic (Blue 5-Group + Bridge Alignment + Hint)</title>
+  <title>Steve's Math Universe: Ultimate Logic (Clickable Move + No Table)</title>
   <style>
     :root { --add-color:#2ecc71; --sub-color:#9b59b6; --mult-color:#e67e22; --word-color:#34495e; --ui-dark:#2c3e50; --n2-color:#e74c3c; --ten-color:#3498db; --bg:#f0f2f5; --ghost-color:#f1c40f; --comp-color:#f39c12; --build-color:#1abc9c; --shoot-color:#e91e63; --blue:#1e90ff; }
     *{ box-sizing:border-box; }
@@ -63,35 +63,15 @@
     .square-row{ display:flex; align-items:center; margin-bottom:4px; }
     .row-label{ font-weight:bold; margin-left:10px; min-width:50px; text-align:left; font-size:12px; }
 
-    .square{ width:22px; height:22px; background-color:#4CAF50; display:inline-block; margin:2px; position:relative; opacity:1; transition:background-color .5s ease, opacity .5s ease; }
-    .square.empty{ background-color:#fff; border:2px dashed #7f8c8d; }
-    .square.red{ background-color:#e74c3c; opacity:0; animation: fadeIn .5s forwards; }
+    .square{ width:22px; height:22px; background-color:#4CAF50; display:inline-block; margin:2px; position:relative; opacity:1; transition:background-color .25s ease, opacity .25s ease, transform .2s ease; cursor:pointer; }
+    .square.empty{ background-color:#fff; border:2px dashed #7f8c8d; cursor:default; }
+    .square.red{ background-color:#e74c3c; }
     .square.blue{ background-color: var(--blue); }
 
-    @keyframes fadeIn{ to{ opacity:1; } }
-
-    /* Bridge table with 5 columns representing the last group */
-    .bridge-wrapper{ display:flex; flex-direction:column; align-items:center; margin:10px 0; }
-    .bridge-caption{ font-weight:700; color:#2c3e50; margin-bottom:6px; }
-    .bridge-table{ border-collapse:collapse; }
-    .bridge-table td{ border:3px solid #2c3e50; padding:8px 12px; width:42px; height:56px; }
-    .bridge-cell{ text-align:center; vertical-align:middle; }
-    .bridge-box{ width:24px; height:24px; display:inline-block; border-radius:2px; }
-    .bridge-empty{ background:#fff; border:2px dashed #7f8c8d; }
-    .bridge-blue{ background: var(--blue); }
-    .bridge-red{ background:#e74c3c; box-shadow:0 0 0 2px rgba(231,76,60,.15) inset; }
-
-    /* Connectors */
-    #arrowOverlay{ position:absolute; inset:0; pointer-events:none; }
-    #arrowOverlay .conn{ stroke: var(--blue); stroke-width:6; fill:none; filter: drop-shadow(0 0 4px rgba(30,144,255,.6)); }
-    #arrowOverlay .connHead{ fill: var(--blue); }
-
-    /* Decomposition under equation */
+    /* Hint (sum) */
     .five-decomp { font-size: 0.95rem; color:#555; display:flex; gap:20px; justify-content:center; margin-top:6px; }
     .five-decomp .npart { background:#f7f9fb; border:1px solid #e1e7ef; border-radius:8px; padding:6px 10px; }
     .five-decomp .tag { font-weight:700; color:#2c3e50; margin-right:6px; }
-
-    /* Hint button */
     #hint-btn { background:#3498db; }
   </style>
 </head>
@@ -176,7 +156,6 @@
     <div id="game-screen" class="screen">
       <div id="logic-pane" style="width:100%; max-width:900px; background:#fff; padding:15px; border-radius:15px; border:2px solid #ddd; display:flex; flex-direction:column; align-items:center;">
         <h1 id="q-text" style="font-size:40px; margin:0;"></h1>
-        <!-- Decomposition under the equation -->
         <div id="five-decomp" class="five-decomp hidden"></div>
         <div id="visual-area" style="width:100%; margin-top:15px;"></div>
       </div>
@@ -331,7 +310,7 @@
       setTimeout(()=>{ for(let r=1;r<=state.n1;r++){ setTimeout(()=>{ let els=document.querySelectorAll(`.row-${r}`); if(els.length) els.forEach(el=>el.classList.add('visible')); }, (r-1)*(delay*1000/state.n1)); } },100);
     }
 
-    // ---------- ADDITION helpers ----------
+    // ----- ADDITION helpers -----
     function decomposeToFives(n){
       if(n<=5) return (n===5) ? '5' : `${n}`;
       let parts=[]; let remaining=n;
@@ -342,6 +321,7 @@
 
     function renderHorizontal(containerId,count,redCount,applyRed=false){
       const container=document.getElementById(containerId); container.innerHTML='';
+      const owner = (containerId==='visualNum1')? 'n1' : (containerId==='visualNum2'? 'n2' : 'sum');
       let emptySquares=0; const rows=[]; const fullSquares=[];
       for(let i=0;i<count;i+=5){
         const squaresInRow=Math.min(5,count-i);
@@ -349,8 +329,10 @@
         const rowSquares=[];
         for(let j=0;j<5;j++){
           const sq=document.createElement('div'); sq.className='square';
+          sq.dataset.owner = owner; // tag ownership
           if(j>=squaresInRow){ sq.classList.add('empty'); emptySquares++; }
           else { fullSquares.push(sq); rowSquares.push(sq); }
+          // click handler for filled squares will be added below after classes are final
           row.appendChild(sq);
         }
         const label=document.createElement('div'); label.className='row-label'; label.textContent=squaresInRow; row.appendChild(label);
@@ -358,14 +340,62 @@
         rows.push({el:row, label, fullCount:squaresInRow, rowSquares});
       }
       if(applyRed){
-        for(let i=fullSquares.length-1; i>=0 && redCount>0; i--, redCount--){ fullSquares[i].classList.add('red'); }
+        // Apply red ONLY for n2 if not a full 5-group
+        if(owner==='n2' && (state.n2 % 5 !== 0)){
+          for(let i=fullSquares.length-1; i>=0 && redCount>0; i--, redCount--){ fullSquares[i].classList.add('red'); }
+        }
       }
+      // Enable interactions: clicking a FILLED square moves it to opposite number's last-row first empty
+      const allSquares = container.querySelectorAll('.square');
+      allSquares.forEach(sq=>{
+        sq.addEventListener('click', ()=> handleSquareClick(sq));
+      });
       return { emptySquares, rows };
+    }
+
+    function handleSquareClick(sq){
+      // Only allow moving FILLED squares (not .empty)
+      if(sq.classList.contains('empty')) return;
+      const owner = sq.dataset.owner; // 'n1' | 'n2' | 'sum'
+      if(owner==='sum') return; // do nothing on sum
+      const srcContainer = (owner==='n1')? document.getElementById('visualNum1') : document.getElementById('visualNum2');
+      const dstContainer = (owner==='n1')? document.getElementById('visualNum2') : document.getElementById('visualNum1');
+
+      // Target is first EMPTY in the LAST row of destination
+      const rows = dstContainer.querySelectorAll('.square-row');
+      if(!rows.length) return;
+      const lastRow = rows[rows.length-1];
+      const empties = lastRow.querySelectorAll('.square.empty');
+      if(!empties.length){
+        // No empty to receive; small nudge animation to indicate blocked
+        sq.style.transform='scale(0.9)'; setTimeout(()=>{ sq.style.transform='scale(1)'; },120);
+        return;
+      }
+      const target = empties[0];
+
+      // Move: source becomes empty; target becomes filled (blue to indicate moved)
+      sq.classList.remove('red');
+      sq.classList.remove('blue');
+      sq.classList.add('empty');
+
+      target.classList.remove('empty');
+      target.classList.add('blue');
+
+      // Update labels under each block to reflect current filled counts
+      updateTotalsFromDOM();
+    }
+
+    function updateTotalsFromDOM(){
+      const n1Filled = document.querySelectorAll('#visualNum1 .square:not(.empty)').length;
+      const n2Filled = document.querySelectorAll('#visualNum2 .square:not(.empty)').length;
+      const l1=document.getElementById('labelNum1'); if(l1) l1.textContent = `Total (current): ${n1Filled}`;
+      const l2=document.getElementById('labelNum2'); if(l2) l2.textContent = `Total (current): ${n2Filled}`;
+      const e1=document.getElementById('emptyCount1'); if(e1){ const empties = document.querySelectorAll('#visualNum1 .square.empty').length; e1.textContent = `Empty: ${empties}`; }
+      const e2=document.getElementById('emptyCount2'); if(e2){ const empties = document.querySelectorAll('#visualNum2 .square.empty').length; e2.textContent = `Empty: ${empties}`; }
     }
 
     function drawAddition(){
       document.getElementById('visual-area').innerHTML=`
-        <svg id="arrowOverlay"></svg>
         <div class="visual-container" id="vc1">
           <div class="label-column">
             <div class="block-label" id="labelNum1"></div>
@@ -380,124 +410,34 @@
           </div>
           <div class="square-block" id="visualNum2"></div>
         </div>
-        <div id="bridgeWrapper" class="bridge-wrapper hidden"></div>
         <h3 id="sumLabel" class="hidden">Visual Sum</h3>
         <div class="visual-container hidden" id="sumContainer">
           <div class="label-column"><div class="block-label" id="labelSum"></div></div>
           <div class="square-block" id="visualSum"></div>
         </div>`;
 
-      document.getElementById('labelNum1').textContent=`Total: ${state.n1}`;
-      document.getElementById('labelNum2').textContent=`Total: ${state.n2}`;
+      document.getElementById('labelNum1').textContent=`Total (current): ${state.n1}`;
+      document.getElementById('labelNum2').textContent=`Total (current): ${state.n2}`;
 
-      const n1Info= renderHorizontal('visualNum1', state.n1, 0, false);
       const remainder= state.n1 % 5;
       const neededToFive= remainder===0 ? 0 : (5 - remainder);
-      const moveCount= Math.min(neededToFive, state.n2);
 
-      // If not full 5 in n1's last group, color its existing squares in that row BLUE
+      // redCount for n2: only if n2 is NOT a multiple of 5
+      const redFromSecond = (state.n2 % 5 === 0) ? 0 : Math.min(neededToFive, state.n2);
+
+      // Draw both visuals; mark the existing (partial) last row of n1 in BLUE
+      const n1Info= renderHorizontal('visualNum1', state.n1, 0, false);
       if(remainder!==0 && n1Info.rows.length>0){
         const lastRow = n1Info.rows[n1Info.rows.length - 1];
-        // existing filled squares are first 'remainder' squares
-        for(let i=0;i<lastRow.rowSquares.length;i++){
-          lastRow.rowSquares[i].classList.add('blue');
-        }
+        lastRow.rowSquares.forEach(sq=> sq.classList.add('blue'));
       }
+      renderHorizontal('visualNum2', state.n2, redFromSecond, true);
 
-      const n2Info= renderHorizontal('visualNum2', state.n2, moveCount, true);
-
-      // Update per-row label on n2 to show split (X = (X-take) + take)
-      if(moveCount>0){
-        let remaining=moveCount;
-        for(let r = n2Info.rows.length - 1; r >= 0 && remaining>0; r--){
-          const row = n2Info.rows[r];
-          const available = row.fullCount;
-          if(available<=0) continue;
-          const take = Math.min(available, remaining);
-          row.label.innerHTML = `${available} = ${available - take} + <span style="color:#e74c3c; font-weight:700;">${take}</span>`;
-          remaining -= take;
-        }
-      }
-
-      requestAnimationFrame(()=>{
-        buildFiveBridge(neededToFive, remainder, moveCount);
-      });
-
-      const emptyCount1=document.getElementById('emptyCount1'); if(emptyCount1) emptyCount1.textContent=`Empty: ${n1Info.emptySquares}`;
-      const emptyCount2=document.getElementById('emptyCount2'); if(emptyCount2) emptyCount2.textContent='';
+      // Initialize empties counts
+      updateTotalsFromDOM();
     }
 
-    // Build a 5-column bridge representing the last 5-group of n1
-    // Top row: first 'remainder' BLUE boxes (existing), then (5-remainder) EMPTY placeholders
-    // Bottom row: place RED donors only under the EMPTY columns (left-to-right up to moveCount)
-    function buildFiveBridge(neededToFive, remainder, moveCount){
-      const wrap = document.getElementById('bridgeWrapper');
-      if(!wrap) return;
-      if(remainder===0 || moveCount===0){ wrap.classList.add('hidden'); wrap.innerHTML=''; return; }
-      wrap.classList.remove('hidden');
-
-      const caption = `<div class="bridge-caption">Complete the five-group: ${remainder} (blue) + ${moveCount} (red) → 5</div>`;
-
-      let rowTop = '<tr id="bridgeRowTop">';
-      let rowBottom = '<tr id="bridgeRowBottom">';
-
-      // Build 5 columns
-      for(let col=0; col<5; col++){
-        const isExisting = col < remainder;              // existing filled in n1
-        const isEmptySlot = col >= remainder;            // needs donor
-        const donorSlotIndex = col - remainder;          // 0-based among empty slots
-        const placeRed = isEmptySlot && donorSlotIndex < moveCount; // only for first moveCount empties
-
-        // top cell
-        let topBoxClass = isExisting ? 'bridge-blue' : 'bridge-empty';
-        rowTop += `<td class="bridge-cell"><div class="bridge-box ${topBoxClass}" data-col="${col}"></div></td>`;
-
-        // bottom cell
-        let bottomBox = placeRed ? `<div class="bridge-box bridge-red" data-col="${col}"></div>` : '';
-        rowBottom += `<td class="bridge-cell">${bottomBox}</td>`;
-      }
-
-      rowTop += '</tr>'; rowBottom += '</tr>';
-      wrap.innerHTML = `${caption}<table class="bridge-table"><tbody>${rowTop}${rowBottom}</tbody></table>`;
-
-      // Draw connectors from each RED donor to corresponding EMPTY slot above (same column)
-      drawBridgeConnectorsByColumn();
-    }
-
-    function drawBridgeConnectorsByColumn(){
-      const overlay = document.getElementById('arrowOverlay');
-      if(!overlay) return; overlay.innerHTML='';
-
-      // build arrowhead
-      const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
-      const marker = document.createElementNS('http://www.w3.org/2000/svg','marker');
-      marker.setAttribute('id','connHead'); marker.setAttribute('markerWidth','10'); marker.setAttribute('markerHeight','10'); marker.setAttribute('refX','5'); marker.setAttribute('refY','3'); marker.setAttribute('orient','auto');
-      const head = document.createElementNS('http://www.w3.org/2000/svg','path'); head.setAttribute('d','M0,0 L6,3 L0,6 Z'); head.setAttribute('class','connHead');
-      marker.appendChild(head); defs.appendChild(marker); overlay.appendChild(defs);
-
-      const ovRect = overlay.getBoundingClientRect();
-      const topCells = document.querySelectorAll('#bridgeRowTop .bridge-box');
-      const bottomCells = document.querySelectorAll('#bridgeRowBottom .bridge-box.bridge-red');
-
-      bottomCells.forEach(bot => {
-        const col = bot.getAttribute('data-col');
-        const top = Array.from(topCells).find(t => t.getAttribute('data-col') === col && t.classList.contains('bridge-empty'));
-        if(!top) return;
-        const tR = top.getBoundingClientRect();
-        const bR = bot.getBoundingClientRect();
-        const x1 = bR.left + bR.width/2 - ovRect.left;
-        const y1 = bR.top  + bR.height/2 - ovRect.top;
-        const x2 = tR.left + tR.width/2 - ovRect.left;
-        const y2 = tR.top  + tR.height/2 - ovRect.top;
-        const cx = (x1 + x2)/2; const cy = Math.min(y1, y2) - 30;
-        const path = document.createElementNS('http://www.w3.org/2000/svg','path');
-        path.setAttribute('d', `M ${x1},${y1} Q ${cx},${cy} ${x2},${y2}`);
-        path.setAttribute('class','conn'); path.setAttribute('marker-end','url(#connHead)');
-        overlay.appendChild(path);
-      });
-    }
-
-    // Visual Sum hint: render total, but keep the ADDED amount (n2) in BLUE
+    // Visual Sum hint: render total, keep ADDED (n2) in blue
     function showHintSum(){
       const sumLabel = document.getElementById('sumLabel');
       const sumContainer = document.getElementById('sumContainer');
@@ -508,22 +448,13 @@
       const total = state.n1 + state.n2;
       document.getElementById('labelSum').textContent = `Total: ${total}`;
 
-      // First render all as green
       renderHorizontal('visualSum', total, 0, false);
-
-      // Then color the ADDED number (n2) blocks BLUE at the tail end
       const rows = document.querySelectorAll('#visualSum .square-row');
-      // Collect all filled squares in order
       const filled = [];
-      rows.forEach(r => {
-        const sqs = r.querySelectorAll('.square:not(.empty)');
-        sqs.forEach(s => filled.push(s));
-      });
-      // Color last n2 squares blue
+      rows.forEach(r => r.querySelectorAll('.square:not(.empty)').forEach(s=>filled.push(s)) );
       for(let i = filled.length - 1; i >= 0 && (filled.length - 1 - i) < state.n2; i--){
         filled[i].classList.add('blue');
       }
-
       sumLabel.scrollIntoView({ behavior:'smooth', block:'center' });
     }
 
