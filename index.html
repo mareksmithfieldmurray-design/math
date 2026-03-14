@@ -2,13 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Steve's Math Universe: Ultimate Logic (Clickable Move + No Table)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+  <title>Steve's Math Universe: Click-to-Move (v5)</title>
   <style>
     :root { --add-color:#2ecc71; --sub-color:#9b59b6; --mult-color:#e67e22; --word-color:#34495e; --ui-dark:#2c3e50; --n2-color:#e74c3c; --ten-color:#3498db; --bg:#f0f2f5; --ghost-color:#f1c40f; --comp-color:#f39c12; --build-color:#1abc9c; --shoot-color:#e91e63; --blue:#1e90ff; }
     *{ box-sizing:border-box; }
-    body{ font-family:'Segoe UI',sans-serif; margin:0; background:var(--bg); display:flex; justify-content:center; align-items:center; min-height:100vh; overflow:hidden; }
-    #app-wrapper{ background:#fff; width:100%; max-width:1350px; height:98vh; border-radius:20px; display:flex; flex-direction:column; box-shadow:0 15px 50px rgba(0,0,0,.3); position:relative; overflow:hidden; }
+    html, body{ height:100%; }
+    body{ font-family:'Segoe UI',sans-serif; margin:0; background:var(--bg); display:flex; justify-content:center; align-items:center; min-height:100vh; overflow:hidden; padding-bottom: env(safe-area-inset-bottom); }
+    #app-wrapper{ background:#fff; width:100%; max-width:1350px; height:98vh; border-radius:20px; display:flex; flex-direction:column; box-shadow:0 15px 50px rgba(0,0,0,.3); position:relative; overflow:hidden; padding-bottom: calc(env(safe-area-inset-bottom, 0) + 6px); }
 
     /* Timer */
     #top-timer-container{ width:100%; height:8px; background:#eee; position:relative; }
@@ -57,8 +58,10 @@
     #visual-area{ position:relative; }
     .visual-container{ margin:10px 0; display:flex; justify-content:center; align-items:flex-start; }
     .label-column{ display:flex; flex-direction:column; align-items:flex-end; margin-right:10px; }
-    .block-label{ font-weight:bold; margin-right:10px; min-width:80px; text-align:right; font-size:16px; color:#333; }
+    .block-label{ font-weight:bold; margin-right:10px; min-width:180px; text-align:right; font-size:16px; color:#333; }
     .empty-count{ font-size:14px; font-style:italic; color:#666; margin-top:4px; }
+    .five-note{ font-size:0.95rem; font-weight:800; color:#2c3e50; margin-top:4px; }
+
     .square-block{ text-align:left; }
     .square-row{ display:flex; align-items:center; margin-bottom:4px; }
     .row-label{ font-weight:bold; margin-left:10px; min-width:50px; text-align:left; font-size:12px; }
@@ -68,11 +71,25 @@
     .square.red{ background-color:#e74c3c; }
     .square.blue{ background-color: var(--blue); }
 
-    /* Hint (sum) */
+    /* Decomposition + Hint */
     .five-decomp { font-size: 0.95rem; color:#555; display:flex; gap:20px; justify-content:center; margin-top:6px; }
     .five-decomp .npart { background:#f7f9fb; border:1px solid #e1e7ef; border-radius:8px; padding:6px 10px; }
     .five-decomp .tag { font-weight:700; color:#2c3e50; margin-right:6px; }
-    #hint-btn { background:#3498db; }
+    #hint-btn { background:#3498db; font-size:.85rem; padding:6px 10px; border-radius:8px; }
+
+    /* COMPARE: big symbol buttons */
+    .comp-btn{ font-size:64px; width:110px; height:110px; border-radius:16px; border:3px solid #2c3e50; background:#fff; color:#2c3e50; font-weight:900; box-shadow:0 4px 10px rgba(0,0,0,.1); }
+    .comp-btn:active{ transform:scale(0.97); }
+    .comp-target{ font-size:72px; }
+
+    /* iPhone bottom safe spacing for controls */
+    #game-screen .btn { margin-bottom: calc(env(safe-area-inset-bottom, 0) + 4px); }
+    #next-btn { margin-top: 4px; }
+
+    /* NEW: Answer controls strip (just under equation) */
+    .answer-strip{ display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:10px; margin-top:8px; margin-bottom:6px; }
+    .answer-strip .math-input{ font-size:44px; width:130px; }
+    .answer-strip .btn{ padding:10px 16px; border-radius:10px; }
   </style>
 </head>
 <body>
@@ -96,7 +113,7 @@
     <div id="settings-menu" class="hidden">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <h3 style="margin:0;">Settings</h3>
-        <span style="font-size:.7rem; color:#888;">Ver 2.2</span>
+        <span style="font-size:.7rem; color:#888;">Ver 2.5</span>
       </div>
       <hr />
       <button class="btn btn-opt" style="width:100%; margin-bottom:10px; background:#3498db; color:#fff;" onclick="toggleHistory()">📜 View Version Changes</button>
@@ -125,11 +142,7 @@
     <div id="history-modal">
       <h3 style="margin-top:0;">Version History</h3>
       <div style="font-size:.9rem; line-height:1.4;">
-        <strong>v2.2</strong>: Immediate settings application (no delay).<br />
-        <strong>v2.1</strong>: Restored Learn/Quiz modes; Quiz hides logic visuals.<br />
-        <strong>v2.0</strong>: Corrected Header Comment grammar; Synced change log.<br />
-        <strong>v1.9</strong>: Added Version History window & Top Comment sync.<br />
-        <strong>v1.8</strong>: Added Number Shooter & "How to Count" Toggle.
+        <strong>v2.5</strong>: Answer & action buttons moved just under equation; QUIZ hides hint; Learn keeps hints & logic below equation.
       </div>
       <hr />
       <button class="btn btn-sub" style="width:100%" onclick="toggleHistory()">Close History</button>
@@ -156,33 +169,35 @@
     <div id="game-screen" class="screen">
       <div id="logic-pane" style="width:100%; max-width:900px; background:#fff; padding:15px; border-radius:15px; border:2px solid #ddd; display:flex; flex-direction:column; align-items:center;">
         <h1 id="q-text" style="font-size:40px; margin:0;"></h1>
-        <div id="five-decomp" class="five-decomp hidden"></div>
-        <div id="visual-area" style="width:100%; margin-top:15px;"></div>
-      </div>
 
-      <div style="width:100%; max-width:520px; display:flex; flex-direction:column; align-items:center; margin-top:15px; gap:8px;">
-        <div id="feedback-emoji" style="font-size:50px; height:60px;"></div>
-
-        <div id="standard-input-ui" style="display:flex; align-items:center; gap:10px;">
-          <button class="arrow-btn" onclick="step(-1)">▼</button>
-          <input type="number" id="math-ans" class="math-input" placeholder="?" />
-          <button class="arrow-btn" onclick="step(1)">▲</button>
+        <!-- ANSWER CONTROLS JUST UNDER EQUATION -->
+        <div id="answer-strip" class="answer-strip">
+          <div id="standard-input-ui" style="display:flex; align-items:center; gap:10px;">
+            <button class="arrow-btn" onclick="step(-1)">▼</button>
+            <input type="number" id="math-ans" class="math-input" placeholder="?" />
+            <button class="arrow-btn" onclick="step(1)">▲</button>
+          </div>
+          <div id="comp-input-ui" class="hidden" style="display:flex; gap:10px;">
+            <button class="comp-btn" onclick="selectSymbol('<')"><</button>
+            <button class="comp-btn" onclick="selectSymbol('=')">=</button>
+            <button class="comp-btn" onclick="selectSymbol('>')">></button>
+          </div>
+          <button id="check-btn" class="btn" style="background: var(--ui-dark);" onclick="verify()">Check Answer</button>
+          <button id="next-btn" class="btn btn-add hidden" onclick="nextQ()">Next →</button>
         </div>
 
-        <div id="comp-input-ui" class="hidden" style="display:flex; gap:10px;">
-          <button class="comp-btn" onclick="selectSymbol('<')"><</button>
-          <button class="comp-btn" onclick="selectSymbol('=')">=</button>
-          <button class="comp-btn" onclick="selectSymbol('>')">></button>
-        </div>
-
-        <div id="msg-box" style="margin:6px; font-weight:bold; text-align:center; height:20px;"></div>
-
+        <!-- HINT sits between equation and visuals (hidden in QUIZ) -->
         <button id="hint-btn" class="btn hidden" onclick="showHintSum()">💡 Hint: Visual Sum</button>
 
-        <div style="display:flex; gap:10px;">
-          <button id="check-btn" class="btn" style="background: var(--ui-dark); width: 200px;" onclick="verify()">Check Answer</button>
-          <button id="next-btn" class="btn btn-add hidden" style="width: 200px;" onclick="nextQ()">Next →</button>
-        </div>
+        <!-- Decomposition under equation -->
+        <div id="five-decomp" class="five-decomp hidden"></div>
+        
+        <div id="visual-area" style="width:100%; margin-top:10px;"></div>
+      </div>
+
+      <div style="width:100%; max-width:560px; display:flex; flex-direction:column; align-items:center; margin-top:10px; gap:10px; padding-bottom: env(safe-area-inset-bottom);">
+        <div id="feedback-emoji" style="font-size:50px; height:50px;"></div>
+        <div id="msg-box" style="margin:2px; font-weight:bold; text-align:center; min-height:20px;"></div>
       </div>
     </div>
   </div>
@@ -191,7 +206,7 @@
     let state = { world:'add', mode:'learn', min:1, max:10, n1:0, n2:0, ans:0, score:0,
                   timerEnabled:false, timeLimit:30, totalExercises:10, currentIdx:0,
                   multDelay:2, showMultNumbers:true, showLogicBox:true, timerId:null,
-                  selectedSymbol:'' };
+                  selectedSymbol:'', movedRightCount:0 };
 
     function toggleSettings(){ document.getElementById('settings-menu').classList.toggle('hidden'); }
     function toggleHistory(){ const m=document.getElementById('history-modal'); m.style.display=(m.style.display==='block')?'none':'block'; }
@@ -215,7 +230,7 @@
 
     function launch(w){ state.world=w; state.currentIdx=0; state.score=0; nextQ(); }
     function step(v){ const i=document.getElementById('math-ans'); i.value=Math.max(0,(parseInt(i.value)||0)+v); }
-    function selectSymbol(s){ state.selectedSymbol=s; const box=document.getElementById('target-box'); if(box){ box.textContent=s; box.style.color="var(--mult-color)"; box.style.borderColor="var(--mult-color)"; } }
+    function selectSymbol(s){ state.selectedSymbol = s; const box = document.getElementById('target-box'); if(box){ box.textContent = s; box.style.color = "var(--mult-color)"; box.style.borderColor = "var(--mult-color)"; } }
 
     function startTimer(){
       clearInterval(state.timerId);
@@ -241,6 +256,7 @@
       state.selectedSymbol='';
       state.n1= Math.floor(Math.random()*(state.max-state.min+1))+state.min;
       state.n2= Math.floor(Math.random()*(state.max-state.min+1))+state.min;
+      state.movedRightCount=0; // reset per question
       refreshCurrentVisuals();
       startTimer();
     }
@@ -266,24 +282,27 @@
             const d2 = decomposeToFives(state.n2);
             decompDiv.innerHTML = `<div class="npart"><span class="tag">${state.n1} =</span>${d1}</div><div class="npart"><span class="tag">${state.n2} =</span>${d2}</div>`;
             decompDiv.classList.remove('hidden');
-          } else { decompDiv.classList.add('hidden'); }
+            hintBtn.classList.remove('hidden');
+          } else {
+            decompDiv.classList.add('hidden');
+            hintBtn.classList.add('hidden'); // QUIZ mode: hide hint
+          }
 
           state.mode==='learn' ? drawAddition() : document.getElementById('visual-area').innerHTML='';
-          if(state.mode==='learn') hintBtn.classList.remove('hidden');
         } else if(state.world==='sub'){
           if(state.n1<state.n2) [state.n1,state.n2]=[state.n2,state.n1];
           state.ans= state.n1 - state.n2;
           document.getElementById('q-text').textContent=`${state.n1} - ${state.n2}`;
           decompDiv.classList.add('hidden');
-          state.mode==='learn' ? drawSubtraction() : document.getElementById('visual-area').innerHTML='';
           hintBtn.classList.add('hidden');
+          state.mode==='learn' ? drawSubtraction() : document.getElementById('visual-area').innerHTML='';
         } else if(state.world==='mult'){
           if(state.n1>12) state.n1=12;
           state.ans= state.n1 * state.n2;
           document.getElementById('q-text').textContent=`${state.n1} × ${state.n2}`;
           decompDiv.classList.add('hidden');
-          state.mode==='learn' ? drawMultiplication() : document.getElementById('visual-area').innerHTML='';
           hintBtn.classList.add('hidden');
+          state.mode==='learn' ? drawMultiplication() : document.getElementById('visual-area').innerHTML='';
         }
       }
     }
@@ -332,7 +351,6 @@
           sq.dataset.owner = owner; // tag ownership
           if(j>=squaresInRow){ sq.classList.add('empty'); emptySquares++; }
           else { fullSquares.push(sq); rowSquares.push(sq); }
-          // click handler for filled squares will be added below after classes are final
           row.appendChild(sq);
         }
         const label=document.createElement('div'); label.className='row-label'; label.textContent=squaresInRow; row.appendChild(label);
@@ -340,49 +358,60 @@
         rows.push({el:row, label, fullCount:squaresInRow, rowSquares});
       }
       if(applyRed){
-        // Apply red ONLY for n2 if not a full 5-group
         if(owner==='n2' && (state.n2 % 5 !== 0)){
-          for(let i=fullSquares.length-1; i>=0 && redCount>0; i--, redCount--){ fullSquares[i].classList.add('red'); }
+          for(let i=fullSquares.length-1; i>=0 && redCount>0; i--, redCount--){
+            fullSquares[i].classList.add('red');
+            fullSquares[i].dataset.originOwner = owner;
+            fullSquares[i].dataset.originColor = 'red';
+          }
         }
       }
-      // Enable interactions: clicking a FILLED square moves it to opposite number's last-row first empty
+      if(owner==='n1'){
+        const remainder = count % 5;
+        if(remainder!==0 && rows.length){
+          const lastRow = rows[rows.length-1];
+          lastRow.rowSquares.forEach(sq=>{ sq.classList.add('blue'); sq.dataset.originOwner='n1'; sq.dataset.originColor='blue'; });
+        }
+      }
       const allSquares = container.querySelectorAll('.square');
-      allSquares.forEach(sq=>{
-        sq.addEventListener('click', ()=> handleSquareClick(sq));
-      });
+      allSquares.forEach(sq=>{ sq.addEventListener('click', ()=> handleSquareClick(sq)); });
       return { emptySquares, rows };
     }
 
     function handleSquareClick(sq){
-      // Only allow moving FILLED squares (not .empty)
-      if(sq.classList.contains('empty')) return;
-      const owner = sq.dataset.owner; // 'n1' | 'n2' | 'sum'
-      if(owner==='sum') return; // do nothing on sum
-      const srcContainer = (owner==='n1')? document.getElementById('visualNum1') : document.getElementById('visualNum2');
+      const isRed = sq.classList.contains('red');
+      const isBlue = sq.classList.contains('blue');
+      if(!(isRed || isBlue)) return;
+      const owner = sq.dataset.owner; if(owner==='sum') return;
       const dstContainer = (owner==='n1')? document.getElementById('visualNum2') : document.getElementById('visualNum1');
+      const destOwner = (dstContainer.id==='visualNum1')? 'n1' : 'n2';
 
-      // Target is first EMPTY in the LAST row of destination
-      const rows = dstContainer.querySelectorAll('.square-row');
-      if(!rows.length) return;
+      let preRightFilled = null;
+      if(destOwner==='n2'){
+        const rowsRight = dstContainer.querySelectorAll('.square-row');
+        if(rowsRight.length){ const lastRight = rowsRight[rowsRight.length-1]; preRightFilled = lastRight.querySelectorAll('.square:not(.empty)').length; }
+      }
+
+      const rows = dstContainer.querySelectorAll('.square-row'); if(!rows.length) return;
       const lastRow = rows[rows.length-1];
       const empties = lastRow.querySelectorAll('.square.empty');
-      if(!empties.length){
-        // No empty to receive; small nudge animation to indicate blocked
-        sq.style.transform='scale(0.9)'; setTimeout(()=>{ sq.style.transform='scale(1)'; },120);
-        return;
-      }
+      if(!empties.length){ sq.style.transform='scale(0.92)'; setTimeout(()=>{ sq.style.transform='scale(1)'; },120); return; }
       const target = empties[0];
 
-      // Move: source becomes empty; target becomes filled (blue to indicate moved)
-      sq.classList.remove('red');
-      sq.classList.remove('blue');
-      sq.classList.add('empty');
+      const originOwner = sq.dataset.originOwner || owner;
+      const originColor = sq.dataset.originColor || (isRed ? 'red' : 'blue');
 
-      target.classList.remove('empty');
-      target.classList.add('blue');
+      if(owner==='n1' && destOwner==='n2') state.movedRightCount++; else if(owner==='n2' && destOwner==='n1'){ if(sq.dataset.movedFromLeft==='1') state.movedRightCount = Math.max(0, state.movedRightCount-1); }
+      const movedFromLeftFlag = (owner==='n1' && destOwner==='n2') ? '1' : (owner==='n2' && destOwner==='n1' ? '0' : (sq.dataset.movedFromLeft||'0'));
 
-      // Update labels under each block to reflect current filled counts
+      sq.classList.remove('red','blue'); sq.classList.add('empty'); delete sq.dataset.originOwner; delete sq.dataset.originColor; delete sq.dataset.movedFromLeft;
+      target.classList.remove('empty','red','blue'); if(isRed) target.classList.add('red'); else target.classList.add('blue');
+      target.dataset.owner = destOwner; target.dataset.originOwner = originOwner; target.dataset.originColor = originColor; target.dataset.movedFromLeft = movedFromLeftFlag;
+
       updateTotalsFromDOM();
+
+      if(destOwner==='n2' && preRightFilled===4){ let note = document.getElementById('rightFiveNote'); if(!note){ note = document.createElement('div'); note.id='rightFiveNote'; note.className='five-note'; const rightCol = document.querySelector('#vc2 .label-column'); if(rightCol) rightCol.appendChild(note); } if(note) note.textContent = '4 + 1'; }
+      if(owner==='n2' && destOwner==='n1'){ const rightRows = document.querySelectorAll('#visualNum2 .square-row'); if(rightRows.length){ const lastRight = rightRows[rightRows.length-1]; const nowFilled = lastRight.querySelectorAll('.square:not(.empty)').length; if(nowFilled < 5){ const note = document.getElementById('rightFiveNote'); if(note) note.textContent=''; } } }
     }
 
     function updateTotalsFromDOM(){
@@ -392,6 +421,11 @@
       const l2=document.getElementById('labelNum2'); if(l2) l2.textContent = `Total (current): ${n2Filled}`;
       const e1=document.getElementById('emptyCount1'); if(e1){ const empties = document.querySelectorAll('#visualNum1 .square.empty').length; e1.textContent = `Empty: ${empties}`; }
       const e2=document.getElementById('emptyCount2'); if(e2){ const empties = document.querySelectorAll('#visualNum2 .square.empty').length; e2.textContent = `Empty: ${empties}`; }
+
+      let movedLbl = document.getElementById('movedRightLbl'); if(!movedLbl){ movedLbl = document.createElement('div'); movedLbl.id='movedRightLbl'; movedLbl.style.fontSize='0.9rem'; movedLbl.style.color='#2c3e50'; movedLbl.style.fontWeight='700'; document.querySelector('#vc2 .label-column').appendChild(movedLbl); }
+      movedLbl.textContent = `Moved ➜ Right: +${state.movedRightCount}`;
+
+      const rightRows = document.querySelectorAll('#visualNum2 .square-row'); if(rightRows.length){ const lastRight = rightRows[rightRows.length-1]; const nowFilled = lastRight.querySelectorAll('.square:not(.empty)').length; if(nowFilled < 5){ const note = document.getElementById('rightFiveNote'); if(note) note.textContent=''; } }
     }
 
     function drawAddition(){
@@ -407,6 +441,7 @@
           <div class="label-column">
             <div class="block-label" id="labelNum2"></div>
             <div class="empty-count" id="emptyCount2"></div>
+            <div id="rightFiveNote" class="five-note"></div>
           </div>
           <div class="square-block" id="visualNum2"></div>
         </div>
@@ -421,70 +456,46 @@
 
       const remainder= state.n1 % 5;
       const neededToFive= remainder===0 ? 0 : (5 - remainder);
-
-      // redCount for n2: only if n2 is NOT a multiple of 5
       const redFromSecond = (state.n2 % 5 === 0) ? 0 : Math.min(neededToFive, state.n2);
 
-      // Draw both visuals; mark the existing (partial) last row of n1 in BLUE
-      const n1Info= renderHorizontal('visualNum1', state.n1, 0, false);
-      if(remainder!==0 && n1Info.rows.length>0){
-        const lastRow = n1Info.rows[n1Info.rows.length - 1];
-        lastRow.rowSquares.forEach(sq=> sq.classList.add('blue'));
-      }
+      renderHorizontal('visualNum1', state.n1, 0, false);
       renderHorizontal('visualNum2', state.n2, redFromSecond, true);
 
-      // Initialize empties counts
       updateTotalsFromDOM();
     }
 
-    // Visual Sum hint: render total, keep ADDED (n2) in blue
-    function showHintSum(){
-      const sumLabel = document.getElementById('sumLabel');
-      const sumContainer = document.getElementById('sumContainer');
-      if(!sumLabel || !sumContainer) return;
-      sumLabel.classList.remove('hidden');
-      sumContainer.classList.remove('hidden');
+    function buildSumPreserveColors(){
+      const sumLabel = document.getElementById('sumLabel'); const sumContainer = document.getElementById('sumContainer'); if(!sumLabel || !sumContainer) return; sumLabel.classList.remove('hidden'); sumContainer.classList.remove('hidden');
+      const srcBlocks = [ ...document.querySelectorAll('#visualNum1 .square:not(.empty)'), ...document.querySelectorAll('#visualNum2 .square:not(.empty)') ];
+      const total = srcBlocks.length; document.getElementById('labelSum').textContent = `Total: ${total}`;
+      const host = document.getElementById('visualSum'); host.innerHTML='';
+      for(let i=0;i<total;i+=5){ const row=document.createElement('div'); row.className='square-row'; for(let j=0;j<5;j++){ const idx=i+j; const sq=document.createElement('div'); sq.className='square'; if(idx < total){ const src = srcBlocks[idx]; if(src.classList.contains('red')) sq.classList.add('red'); else if(src.classList.contains('blue')) sq.classList.add('blue'); } else { sq.classList.add('empty'); } row.appendChild(sq);} host.appendChild(row);} }
 
-      const total = state.n1 + state.n2;
-      document.getElementById('labelSum').textContent = `Total: ${total}`;
+    function showHintSum(){ buildSumPreserveColors(); document.getElementById('sumLabel').scrollIntoView({ behavior:'smooth', block:'center' }); }
 
-      renderHorizontal('visualSum', total, 0, false);
-      const rows = document.querySelectorAll('#visualSum .square-row');
-      const filled = [];
-      rows.forEach(r => r.querySelectorAll('.square:not(.empty)').forEach(s=>filled.push(s)) );
-      for(let i = filled.length - 1; i >= 0 && (filled.length - 1 - i) < state.n2; i--){
-        filled[i].classList.add('blue');
-      }
-      sumLabel.scrollIntoView({ behavior:'smooth', block:'center' });
-    }
-
-    function drawSubtraction(){
-      document.getElementById('visual-area').innerHTML = `<div style="text-align:center; font-size:1.2rem;">Visualize taking ${state.n2} units away from ${state.n1}.</div>`;
-    }
-
-    function drawComparison(){
-      document.getElementById('visual-area').innerHTML = `
-        <div style="display:flex; align-items:center; gap:20px; font-size:50px; font-weight:bold; justify-content:center;">
+    function drawSubtraction(){ document.getElementById('visual-area').innerHTML = `<div style=\"text-align:center; font-size:1.2rem;\">Visualize taking ${state.n2} units away from ${state.n1}.</div>`; }
+    function drawComparison(){ document.getElementById('visual-area').innerHTML = `
+        <div style=\"display:flex; align-items:center; gap:20px; font-size:64px; font-weight:bold; justify-content:center;\">
           <div>${state.n1}</div>
-          <div id="target-box" class="comp-target" style="width:80px; height:80px; border:3px dashed #ccc; border-radius:10px; display:flex; align-items:center; justify-content:center;">?</div>
+          <div id=\"target-box\" class=\"comp-target\" style=\"width:110px; height:110px; border:4px dashed #2c3e50; border-radius:16px; display:flex; align-items:center; justify-content:center;\">?</div>
           <div>${state.n2}</div>
-        </div>`;
-    }
+        </div>`; }
 
     function verify(isTimeout=false){
       clearInterval(state.timerId);
       let correct=false;
       if(state.world==='comp'){
-        const actual= state.n1<state.n2 ? '<' : (state.n1>state.n2 ? '>' : '=');
+        const actual= state.n1 < state.n2 ? '<' : (state.n1 > state.n2 ? '>' : '=');
         correct=(state.selectedSymbol===actual);
       } else {
-        correct=(parseInt(document.getElementById('math-ans').value)===state.ans);
+        const n1Filled = document.querySelectorAll('#visualNum1 .square:not(.empty)').length;
+        const n2Filled = document.querySelectorAll('#visualNum2 .square:not(.empty)').length;
+        correct=(parseInt(document.getElementById('math-ans').value)=== (n1Filled + n2Filled));
       }
-      if(!isTimeout && correct){ state.score++; document.getElementById('feedback-emoji').textContent='🏆'; document.getElementById('msg-box').textContent='Excellent!'; }
-      else { document.getElementById('feedback-emoji').textContent='😟'; document.getElementById('msg-box').textContent= isTimeout?"Time's Up!" : (state.world==='comp'? 'Answer: Check the symbol' : ('Answer: '+state.ans)); }
+      if(!isTimeout && correct){ document.getElementById('feedback-emoji').textContent='🏆'; document.getElementById('msg-box').textContent='Excellent!'; }
+      else { document.getElementById('feedback-emoji').textContent='😟'; document.getElementById('msg-box').textContent= isTimeout?"Time's Up!" : (state.world==='comp'? 'Answer: Check the symbol' : 'Check the total'); }
 
-      if(state.world==='add' && state.mode==='learn'){ showHintSum(); }
-      document.getElementById('score-val').textContent='Score: '+state.score;
+      if(state.world==='add' && state.mode==='learn'){ buildSumPreserveColors(); }
       document.getElementById('check-btn').classList.add('hidden');
       document.getElementById('next-btn').classList.remove('hidden');
       document.getElementById('math-ans').disabled=true;
