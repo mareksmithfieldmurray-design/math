@@ -1,517 +1,594 @@
 <!DOCTYPE html>
+<!-- 
+ Steve's Math Universe - Single-file build 
+ Version: 3.6 
+ Built (UTC): 2026-03-15 02:22:36Z
+ Notes: Keep Learn/Quiz modes and Settings; do not remove Back to Menu; changes are additive.
+-->
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-  <title>Steve's Math Universe: Click-to-Move (v5)</title>
-  <style>
-    :root { --add-color:#2ecc71; --sub-color:#9b59b6; --mult-color:#e67e22; --word-color:#34495e; --ui-dark:#2c3e50; --n2-color:#e74c3c; --ten-color:#3498db; --bg:#f0f2f5; --ghost-color:#f1c40f; --comp-color:#f39c12; --build-color:#1abc9c; --shoot-color:#e91e63; --blue:#1e90ff; }
-    *{ box-sizing:border-box; }
-    html, body{ height:100%; }
-    body{ font-family:'Segoe UI',sans-serif; margin:0; background:var(--bg); display:flex; justify-content:center; align-items:center; min-height:100vh; overflow:hidden; padding-bottom: env(safe-area-inset-bottom); }
-    #app-wrapper{ background:#fff; width:100%; max-width:1350px; height:98vh; border-radius:20px; display:flex; flex-direction:column; box-shadow:0 15px 50px rgba(0,0,0,.3); position:relative; overflow:hidden; padding-bottom: calc(env(safe-area-inset-bottom, 0) + 6px); }
-
-    /* Timer */
-    #top-timer-container{ width:100%; height:8px; background:#eee; position:relative; }
-    #timer-progress{ height:100%; width:0%; background:var(--n2-color); transition:width 1s linear; }
-
-    /* Header */
-    .header-strip{ background:var(--ui-dark); color:#fff; padding:10px 20px; display:flex; justify-content:space-between; align-items:center; z-index:10; }
-    .avatar-img{ height:45px; width:45px; border-radius:12px; border:2px solid #fff; cursor:pointer; background:#f9f9f9; object-fit:contain; }
-
-    /* Panels */
-    #settings-menu, #history-modal{ position:absolute; top:70px; right:10px; background:#fff; border:3px solid var(--ui-dark); padding:20px; border-radius:15px; z-index:1000; box-shadow:0 10px 40px rgba(0,0,0,.4); width:340px; max-height:85vh; overflow-y:auto; color:#333; }
-    #history-modal{ right:50%; transform:translateX(50%); width:90%; max-width:500px; display:none; }
-    .setting-row{ margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
-    .setting-row input[type="number"]{ width:60px; padding:5px; border-radius:5px; border:1px solid #ccc; }
-
-    /* Screens & buttons */
-    .screen{ display:none; padding:15px; flex:1; flex-direction:column; align-items:center; overflow-y:auto; width:100%; }
-    .active{ display:flex; }
-    .btn{ padding:12px 20px; border:none; border-radius:12px; font-weight:bold; cursor:pointer; color:#fff; transition:.2s; text-decoration:none; text-align:center; font-size:.9rem; display:flex; align-items:center; justify-content:center; }
-    .btn-add{ background:var(--add-color); } .btn-sub{ background:var(--sub-color);} .btn-mult{ background:var(--mult-color);} .btn-word{ background:var(--word-color);} .btn-opt{ background:#eee; color:#333; border:1px solid #ccc; padding:8px 12px;} .btn-opt.selected{ background:var(--ui-dark); color:#fff; }
-    .module-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:15px; width:100%; max-width:800px; padding:10px; }
-    .module-divider{ width:100%; max-width:800px; border-top:4px solid #000; margin:25px 0; position:relative; }
-    .divider-text{ position:absolute; top:-12px; left:50%; transform:translateX(-50%); background:#fff; padding:0 15px; font-size:.8rem; font-weight:bold; color:#000; text-transform:uppercase; }
-
-    /* Multiplication (kept) */
-    .mult-wrapper{ display:flex; gap:30px; align-items:flex-start; justify-content:center; flex-wrap:wrap; width:100%; }
-    .mult-grid{ display:flex; flex-direction:column; gap:2px; background:#f9f9f9; padding:8px; border-radius:10px; border:1px solid #ddd; }
-    .mult-row{ display:flex; gap:2px; }
-    .mult-cell{ width:30px; height:30px; display:flex; align-items:center; justify-content:center; background:var(--mult-color); color:#fff; font-size:11px; font-weight:bold; border-radius:4px; }
-    .logic-step-box{ background:#fffde7; border:2px solid #fbc02d; padding:15px; border-radius:12px; font-family:'Courier New',monospace; min-width:180px; box-shadow:4px 4px 0 #fbc02d; }
-    .logic-line{ margin:5px 0; opacity:0; transition:opacity .5s; font-weight:bold; font-size:1.1rem; }
-    .logic-line.visible{ opacity:1; }
-    .block-num{ opacity:0; transition:opacity .3s; }
-    .block-num.visible{ opacity:1; }
-
-    /* Inputs */
-    .math-input{ font-size:50px; width:140px; text-align:center; border:4px solid var(--ui-dark); border-radius:12px; }
-    .arrow-btn{ width:50px; height:50px; border-radius:12px; font-size:20px; cursor:pointer; background:#fff; border:2px solid #ccc; }
-
-    @media (max-width:600px){ .module-grid{ grid-template-columns:1fr; } #q-text{ font-size:30px!important; } .mult-wrapper{ gap:15px; } }
-    .hidden{ display:none!important; }
-
-    /* =====================================
-       ADDITION visuals
-       ===================================== */
-    #visual-area{ position:relative; }
-    .visual-container{ margin:10px 0; display:flex; justify-content:center; align-items:flex-start; }
-    .label-column{ display:flex; flex-direction:column; align-items:flex-end; margin-right:10px; }
-    .block-label{ font-weight:bold; margin-right:10px; min-width:180px; text-align:right; font-size:16px; color:#333; }
-    .empty-count{ font-size:14px; font-style:italic; color:#666; margin-top:4px; }
-    .five-note{ font-size:0.95rem; font-weight:800; color:#2c3e50; margin-top:4px; }
-
-    .square-block{ text-align:left; }
-    .square-row{ display:flex; align-items:center; margin-bottom:4px; }
-    .row-label{ font-weight:bold; margin-left:10px; min-width:50px; text-align:left; font-size:12px; }
-
-    .square{ width:22px; height:22px; background-color:#4CAF50; display:inline-block; margin:2px; position:relative; opacity:1; transition:background-color .25s ease, opacity .25s ease, transform .2s ease; cursor:pointer; }
-    .square.empty{ background-color:#fff; border:2px dashed #7f8c8d; cursor:default; }
-    .square.red{ background-color:#e74c3c; }
-    .square.blue{ background-color: var(--blue); }
-
-    /* Decomposition + Hint */
-    .five-decomp { font-size: 0.95rem; color:#555; display:flex; gap:20px; justify-content:center; margin-top:6px; }
-    .five-decomp .npart { background:#f7f9fb; border:1px solid #e1e7ef; border-radius:8px; padding:6px 10px; }
-    .five-decomp .tag { font-weight:700; color:#2c3e50; margin-right:6px; }
-    #hint-btn { background:#3498db; font-size:.85rem; padding:6px 10px; border-radius:8px; }
-
-    /* COMPARE: big symbol buttons */
-    .comp-btn{ font-size:64px; width:110px; height:110px; border-radius:16px; border:3px solid #2c3e50; background:#fff; color:#2c3e50; font-weight:900; box-shadow:0 4px 10px rgba(0,0,0,.1); }
-    .comp-btn:active{ transform:scale(0.97); }
-    .comp-target{ font-size:72px; }
-
-    /* iPhone bottom safe spacing for controls */
-    #game-screen .btn { margin-bottom: calc(env(safe-area-inset-bottom, 0) + 4px); }
-    #next-btn { margin-top: 4px; }
-
-    /* NEW: Answer controls strip (just under equation) */
-    .answer-strip{ display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:10px; margin-top:8px; margin-bottom:6px; }
-    .answer-strip .math-input{ font-size:44px; width:130px; }
-    .answer-strip .btn{ padding:10px 16px; border-radius:10px; }
-  </style>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+ <meta name="apple-mobile-web-app-capable" content="yes" />
+ <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+ <title>Steve's Math Universe v3.6</title>
+ <style>
+ :root { --add-color:#2ecc71; --sub-color:#9b59b6; --mult-color:#e67e22; --word-color:#34495e; --ui-dark:#2c3e50; --n2-color:#e74c3c; --ten-color:#3498db; --bg:#f0f2f5; --ghost-color:#f1c40f; --comp-color:#f39c12; --build-color:#1abc9c; --shoot-color:#e91e63; --blue:#1e90ff; }
+ *{ box-sizing:border-box; }
+ html, body{ height:100%; }
+ body{ font-family:'Segoe UI',sans-serif; margin:0; background:var(--bg); display:flex; justify-content:center; align-items:center; min-height:100vh; overflow:hidden; padding-bottom: env(safe-area-inset-bottom); }
+ #app-wrapper{ background:#fff; width:100%; max-width:1350px; height:98vh; border-radius:20px; display:flex; flex-direction:column; box-shadow:0 15px 50px rgba(0,0,0,.3); position:relative; overflow:hidden; padding-bottom: calc(env(safe-area-inset-bottom, 0) + 6px); }
+ #top-timer-container{ width:100%; height:8px; background:#eee; position:relative; }
+ #timer-progress{ height:100%; width:0%; background:var(--n2-color); transition:width 1s linear; }
+ .header-strip{ background:var(--ui-dark); color:#fff; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; z-index:10; }
+ .header-left{ display:flex; align-items:center; gap:8px; }
+ .avatar-img{ height:40px; width:40px; border-radius:12px; border:2px solid #fff; cursor:pointer; background:#f9f9f9; object-fit:contain; }
+ #settings-menu, #history-modal, #fs-help-modal, #info-modal{ position:absolute; top:70px; right:10px; background:#fff; border:3px solid var(--ui-dark); padding:20px; border-radius:15px; z-index:1000; box-shadow:0 10px 40px rgba(0,0,0,.4); color:#333; }
+ #settings-menu{ width:360px; max-height:85vh; overflow-y:auto; }
+ #history-modal{ right:50%; transform:translateX(50%); width:90%; max-width:520px; display:none; }
+ #fs-help-modal{ right:50%; transform:translateX(50%); width:92%; max-width:540px; display:none; }
+ #info-modal{ right:50%; transform:translateX(50%); width:92%; max-width:620px; display:none; }
+ .setting-row{ margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+ .setting-row input[type="number"]{ width:60px; padding:5px; border-radius:5px; border:1px solid #ccc; }
+ .screen{ display:none; padding:12px; flex:1; flex-direction:column; align-items:center; overflow-y:auto; width:100%; }
+ .active{ display:flex; }
+ .btn{ padding:10px 16px; border:none; border-radius:12px; font-weight:bold; cursor:pointer; color:#fff; transition:.2s; text-decoration:none; text-align:center; font-size:.9rem; display:flex; align-items:center; justify-content:center; }
+ .btn-add{ background:var(--add-color); } .btn-sub{ background:var(--sub-color);} .btn-mult{ background:var(--mult-color);} .btn-word{ background:var(--word-color);} .btn-opt{ background:#eee; color:#333; border:1px solid #ccc; padding:8px 12px;} .btn-opt.selected{ background:var(--ui-dark); color:#fff; }
+ .module-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; width:100%; max-width:860px; padding:10px; }
+ .module-divider{ width:100%; max-width:860px; border-top:4px solid #000; margin:18px 0; position:relative; }
+ .divider-text{ position:absolute; top:-12px; left:50%; transform:translateX(-50%); background:#fff; padding:0 12px; font-size:.8rem; font-weight:bold; color:#000; text-transform:uppercase; }
+ .math-input{ font-size:44px; width:130px; text-align:center; border:4px solid var(--ui-dark); border-radius:12px; }
+ .arrow-btn{ width:46px; height:46px; border-radius:12px; font-size:18px; cursor:pointer; background:#fff; border:2px solid #ccc; }
+ @media (max-width:600px){ .module-grid{ grid-template-columns:1fr; } #q-text{ font-size:28px!important; } .eqn-bar{ flex-wrap:wrap; justify-content:center; } #compare-strip{ margin-left:0; margin-top:6px; } }
+ .hidden{ display:none!important; }
+ /* ===================================== VISUALS */
+ #visual-area{ position:relative; }
+ .visual-container{ margin:8px 0; display:flex; justify-content:center; align-items:flex-start; }
+ .label-column{ display:flex; flex-direction:column; align-items:flex-end; margin-right:10px; }
+ .block-label{ font-weight:bold; margin-right:10px; min-width:190px; text-align:right; font-size:16px; color:#333; }
+ .empty-count{ font-size:14px; font-style:italic; color:#666; margin-top:4px; }
+ .five-note{ font-size:0.95rem; font-weight:800; color:#2c3e50; margin-top:4px; }
+ .square-block{ text-align:left; }
+ .square-row{ display:flex; align-items:center; margin-bottom:4px; }
+ .row-label{ font-weight:bold; margin-left:10px; min-width:50px; text-align:left; font-size:12px; }
+ .square{ width:30px; height:30px; background-color:#4CAF50; display:inline-block; margin:3px; position:relative; opacity:1; transition:background-color .25s ease, opacity .25s ease, transform .2s ease; cursor:pointer; }
+ .square.empty{ background-color:#fff; border:2px dashed #7f8c8d; cursor:default; }
+ .square.red{ background-color:#e74c3c; }
+ .square.blue{ background-color: var(--blue); }
+ .five-decomp { font-size: 0.95rem; color:#555; display:flex; gap:20px; justify-content:center; margin-top:6px; }
+ .five-decomp .npart { background:#f7f9fb; border:1px solid #e1e7ef; border-radius:8px; padding:6px 10px; }
+ .five-decomp .tag { font-weight:700; color:#2c3e50; margin-right:6px; }
+ #hint-btn { background:#3498db; font-size:.85rem; padding:6px 10px; border-radius:8px; }
+ #hint-countdown { margin-top:4px; font-size:.85rem; color:#2c3e50; font-weight:700; }
+ .comp-btn{ font-size:54px; width:96px; height:96px; border-radius:14px; border:3px solid #2c3e50; background:#fff; color:#2c3e50; font-weight:900; box-shadow:0 4px 10px rgba(0,0,0,.1); }
+ .comp-btn:active{ transform:scale(0.97); }
+ .comp-target-box{ display:inline-flex; align-items:center; justify-content:center; width:46px; height:46px; border:3px solid var(--mult-color); border-radius:10px; margin:0 8px; font-weight:900; color:var(--mult-color); background:#fff; }
+ #game-screen .btn { margin-bottom: calc(env(safe-area-inset-bottom, 0) + 4px); }
+ #next-btn { margin-top: 4px; }
+ .answer-strip{ display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:10px; margin-top:8px; margin-bottom:6px; }
+ .answer-strip .btn{ padding:10px 16px; border-radius:10px; }
+ .eqn-bar{ display:flex; align-items:center; justify-content:center; gap:12px; width:100%; }
+ #compare-strip{ display:none; align-items:center; gap:8px; margin-left:12px; }
+ /* ===== Multiplication & Division table-like wrapper ===== */
+ .array-wrapper{ display:flex; gap:18px; align-items:flex-start; justify-content:center; flex-wrap:wrap; }
+ .array-table{ display:flex; flex-direction:column; }
+ .array-top{ display:flex; align-items:center; margin-left:44px; }
+ .div-score-chip{ margin-left:12px; font-weight:800; color:#2c3e50; padding:4px 12px; border:2px solid #2c3e50; border-radius:10px; background:#fff; }
+ .div-dim-chip{ margin-left:12px; font-weight:800; color:#2c3e50; padding:4px 10px; border:2px dashed #2c3e50; border-radius:10px; background:#f8fafc; }
+ .hdr{ width:30px; height:30px; display:flex; align-items:center; justify-content:center; font-weight:700; color:#2c3e50; margin:3px; border-radius:6px; user-select:none; border:1px solid transparent; }
+ .array-body{ display:flex; flex-direction:column; }
+ .array-row{ display:flex; align-items:center; border-bottom:2px solid #000; }
+ .row-hdr{ width:30px; height:30px; display:flex; align-items:center; justify-content:center; font-weight:800; color:#2c3e50; margin:3px 14px 3px 0; border-radius:6px; user-select:none; border:1px solid transparent; cursor:pointer; white-space:nowrap; padding:0 10px; min-width:96px; }
+ .row-hdr-right{ margin:3px 0 3px 14px; min-width:140px; height:30px; white-space:nowrap; padding:0 12px; font-weight:900; }
+ .cell{ width:30px; height:30px; margin:3px; border-radius:4px; background:var(--mult-color); color:#fff; font-size:11px; display:flex; align-items:center; justify-content:center; border:1px solid #e6e6e6; }
+ .cell.empty{ background:#fff; border:1px dashed #ccc; color:#ccc; }
+ .hdr.removed, .row-hdr.removed{ background:#eee; color:#bbb; border:1px dashed #bbb; }
+ .blueHdr{ background: var(--blue); color:#fff !important; border-color: var(--blue); }
+ .thick-left{ border-left:3px solid var(--blue)!important; }
+ .thick-right{ border-right:3px solid var(--blue)!important; }
+ .thick-top{ border-top:3px solid var(--blue)!important; }
+ .thick-bottom{ border-bottom:3px solid var(--blue)!important; }
+ .row-odd .cell:not(.empty){ background:#e67e22; }
+ .row-even .cell:not(.empty){ background:#cf6d13; }
+ .row-hdr-right.blueHdr{ box-shadow:0 0 0 2px rgba(30,144,255,.35) inset; }
+ </style>
 </head>
 <body>
-  <div id="app-wrapper">
-    <div id="top-timer-container"><div id="timer-progress"></div></div>
-
-    <div class="header-strip">
-      <div style="display:flex; align-items:center; gap:10px;">
-        <button class="btn btn-opt" onclick="goHome()">🏠 Menu</button>
-        <img src="steve.png" id="current-avatar" class="avatar-img" onclick="toggleSettings()" />
-        <div>
-          <span id="score-val" style="font-weight:bold; font-size:.9rem;">Score: 0</span><br />
-          <span id="exercise-count" style="font-size:.7rem; color:#ccc;">0/0</span>
-        </div>
-      </div>
-      <div id="mode-tag" style="font-size:.7rem; font-weight:bold; color:#f1c40f;">LEARN MODE</div>
-      <button class="btn btn-opt" onclick="toggleSettings()">⚙️</button>
-    </div>
-
-    <!-- SETTINGS -->
-    <div id="settings-menu" class="hidden">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h3 style="margin:0;">Settings</h3>
-        <span style="font-size:.7rem; color:#888;">Ver 2.5</span>
-      </div>
-      <hr />
-      <button class="btn btn-opt" style="width:100%; margin-bottom:10px; background:#3498db; color:#fff;" onclick="toggleHistory()">📜 View Version Changes</button>
-      <div style="font-weight:bold; margin-bottom:5px;">App Mode:</div>
-      <div style="display:flex; gap:5px; margin-bottom:15px;">
-        <button id="mode-learn" class="btn btn-opt selected" style="flex:1" onclick="setMode('learn')">LEARN</button>
-        <button id="mode-quiz" class="btn btn-opt" style="flex:1" onclick="setMode('quiz')">QUIZ</button>
-      </div>
-      <div class="setting-row"><span>Timer:</span><input type="checkbox" id="cfg-timer-on" onchange="state.timerEnabled=this.checked" /></div>
-      <div class="setting-row"><span>Time (s):</span><input type="number" id="cfg-time" value="30" /></div>
-      <div class="setting-row"><span>Exercises:</span><input type="number" id="cfg-total" value="10" /></div>
-      <hr />
-      <div style="font-weight:bold; margin-bottom:5px;">Range:</div>
-      <div class="setting-row"><span>Min:</span><input type="number" id="cfg-min" value="1" /></div>
-      <div class="setting-row"><span>Max:</span><input type="number" id="cfg-max" value="10" /></div>
-      <hr />
-      <div style="font-weight:bold; margin-bottom:5px;">Multiplication Logic:</div>
-      <div class="setting-row"><span>Show Numbers:</span><input type="checkbox" id="cfg-mult-numbers" checked onchange="state.showMultNumbers=this.checked" /></div>
-      <div class="setting-row"><span>How to Count:</span><input type="checkbox" id="cfg-show-logic" checked onchange="state.showLogicBox=this.checked" /></div>
-      <div class="setting-row"><span>Ghost Delay (s):</span><input type="number" id="cfg-mult-delay" value="2" /></div>
-      <hr />
-      <button class="btn btn-add" style="width:100%" onclick="saveSettings()">Save & Close</button>
-    </div>
-
-    <!-- HISTORY -->
-    <div id="history-modal">
-      <h3 style="margin-top:0;">Version History</h3>
-      <div style="font-size:.9rem; line-height:1.4;">
-        <strong>v2.5</strong>: Answer & action buttons moved just under equation; QUIZ hides hint; Learn keeps hints & logic below equation.
-      </div>
-      <hr />
-      <button class="btn btn-sub" style="width:100%" onclick="toggleHistory()">Close History</button>
-    </div>
-
-    <!-- PORTAL -->
-    <div id="portal" class="screen active">
-      <h1 style="color:var(--ui-dark); text-align:center; margin:10px 0;">Steve's Math Universe</h1>
-      <div class="module-grid">
-        <button class="btn btn-add" onclick="launch('add')">ADDITION</button>
-        <button class="btn btn-sub" onclick="launch('sub')">SUBTRACTION</button>
-        <button class="btn btn-mult" onclick="launch('mult')">MULTIPLICATION</button>
-        <button class="btn" style="background:var(--comp-color);" onclick="launch('comp')">COMPARE</button>
-      </div>
-      <div class="module-divider"><span class="divider-text">Additional Modules</span></div>
-      <div class="module-grid">
-        <a href="wordproblemsmode.html" class="btn btn-word">📖 MATH READING QUESTIONS</a>
-        <a href="buildermode.html" class="btn" style="background:var(--build-color);">🏗️ NUMBER BLOCK BUILDER</a>
-        <a href="numbershooter.html" class="btn" style="background:var(--shoot-color); grid-column:span 2;">🎯 NUMBER SHOOTER</a>
-      </div>
-    </div>
-
-    <!-- GAME SCREEN -->
-    <div id="game-screen" class="screen">
-      <div id="logic-pane" style="width:100%; max-width:900px; background:#fff; padding:15px; border-radius:15px; border:2px solid #ddd; display:flex; flex-direction:column; align-items:center;">
-        <h1 id="q-text" style="font-size:40px; margin:0;"></h1>
-
-        <!-- ANSWER CONTROLS JUST UNDER EQUATION -->
-        <div id="answer-strip" class="answer-strip">
-          <div id="standard-input-ui" style="display:flex; align-items:center; gap:10px;">
-            <button class="arrow-btn" onclick="step(-1)">▼</button>
-            <input type="number" id="math-ans" class="math-input" placeholder="?" />
-            <button class="arrow-btn" onclick="step(1)">▲</button>
-          </div>
-          <div id="comp-input-ui" class="hidden" style="display:flex; gap:10px;">
-            <button class="comp-btn" onclick="selectSymbol('<')"><</button>
-            <button class="comp-btn" onclick="selectSymbol('=')">=</button>
-            <button class="comp-btn" onclick="selectSymbol('>')">></button>
-          </div>
-          <button id="check-btn" class="btn" style="background: var(--ui-dark);" onclick="verify()">Check Answer</button>
-          <button id="next-btn" class="btn btn-add hidden" onclick="nextQ()">Next →</button>
-        </div>
-
-        <!-- HINT sits between equation and visuals (hidden in QUIZ) -->
-        <button id="hint-btn" class="btn hidden" onclick="showHintSum()">💡 Hint: Visual Sum</button>
-
-        <!-- Decomposition under equation -->
-        <div id="five-decomp" class="five-decomp hidden"></div>
-        
-        <div id="visual-area" style="width:100%; margin-top:10px;"></div>
-      </div>
-
-      <div style="width:100%; max-width:560px; display:flex; flex-direction:column; align-items:center; margin-top:10px; gap:10px; padding-bottom: env(safe-area-inset-bottom);">
-        <div id="feedback-emoji" style="font-size:50px; height:50px;"></div>
-        <div id="msg-box" style="margin:2px; font-weight:bold; text-align:center; min-height:20px;"></div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    let state = { world:'add', mode:'learn', min:1, max:10, n1:0, n2:0, ans:0, score:0,
-                  timerEnabled:false, timeLimit:30, totalExercises:10, currentIdx:0,
-                  multDelay:2, showMultNumbers:true, showLogicBox:true, timerId:null,
-                  selectedSymbol:'', movedRightCount:0 };
-
-    function toggleSettings(){ document.getElementById('settings-menu').classList.toggle('hidden'); }
-    function toggleHistory(){ const m=document.getElementById('history-modal'); m.style.display=(m.style.display==='block')?'none':'block'; }
-    function setMode(m){ state.mode=m; document.getElementById('mode-learn').classList.toggle('selected',m==='learn'); document.getElementById('mode-quiz').classList.toggle('selected',m==='quiz'); document.getElementById('mode-tag').textContent=m.toUpperCase()+" MODE"; }
-    function goHome(){ clearInterval(state.timerId); document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById('portal').classList.add('active'); }
-
-    function saveSettings(){
-      state.timeLimit= parseInt(document.getElementById('cfg-time').value) || 30;
-      state.totalExercises= parseInt(document.getElementById('cfg-total').value) || 10;
-      state.min= parseInt(document.getElementById('cfg-min').value);
-      state.max= parseInt(document.getElementById('cfg-max').value);
-      state.multDelay= parseInt(document.getElementById('cfg-mult-delay').value);
-      state.showMultNumbers= document.getElementById('cfg-mult-numbers').checked;
-      state.showLogicBox= document.getElementById('cfg-show-logic').checked;
-      state.timerEnabled= document.getElementById('cfg-timer-on').checked;
-      toggleSettings();
-      if (document.getElementById('game-screen').classList.contains('active') && document.getElementById('next-btn').classList.contains('hidden')){
-        refreshCurrentVisuals(); startTimer();
-      }
-    }
-
-    function launch(w){ state.world=w; state.currentIdx=0; state.score=0; nextQ(); }
-    function step(v){ const i=document.getElementById('math-ans'); i.value=Math.max(0,(parseInt(i.value)||0)+v); }
-    function selectSymbol(s){ state.selectedSymbol = s; const box = document.getElementById('target-box'); if(box){ box.textContent = s; box.style.color = "var(--mult-color)"; box.style.borderColor = "var(--mult-color)"; } }
-
-    function startTimer(){
-      clearInterval(state.timerId);
-      const bar=document.getElementById('timer-progress');
-      if(!state.timerEnabled){ bar.style.width='0%'; return; }
-      let remaining=state.timeLimit; bar.style.width='100%';
-      state.timerId=setInterval(()=>{ remaining--; bar.style.width=(remaining/state.timeLimit*100)+'%'; if(remaining<=0){ clearInterval(state.timerId); verify(true); } },1000);
-    }
-
-    function nextQ(){
-      state.currentIdx++;
-      if(state.currentIdx>state.totalExercises){ alert('Session Over! Score: '+state.score); goHome(); return; }
-      document.getElementById('exercise-count').textContent=`${state.currentIdx}/${state.totalExercises}`;
-      document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-      document.getElementById('game-screen').classList.add('active');
-      document.getElementById('next-btn').classList.add('hidden');
-      document.getElementById('check-btn').classList.remove('hidden');
-      document.getElementById('msg-box').textContent='';
-      document.getElementById('feedback-emoji').textContent='';
-      document.getElementById('math-ans').value='';
-      document.getElementById('math-ans').disabled=false;
-      document.getElementById('hint-btn').classList.add('hidden');
-      state.selectedSymbol='';
-      state.n1= Math.floor(Math.random()*(state.max-state.min+1))+state.min;
-      state.n2= Math.floor(Math.random()*(state.max-state.min+1))+state.min;
-      state.movedRightCount=0; // reset per question
-      refreshCurrentVisuals();
-      startTimer();
-    }
-
-    function refreshCurrentVisuals(){
-      const standardUI=document.getElementById('standard-input-ui');
-      const compUI=document.getElementById('comp-input-ui');
-      const hintBtn=document.getElementById('hint-btn');
-      const decompDiv=document.getElementById('five-decomp');
-
-      if(state.world==='comp'){
-        document.getElementById('q-text').textContent='Compare';
-        standardUI.classList.add('hidden'); compUI.classList.remove('hidden'); drawComparison();
-        hintBtn.classList.add('hidden'); decompDiv.classList.add('hidden');
-      } else {
-        standardUI.classList.remove('hidden'); compUI.classList.add('hidden');
-
-        if(state.world==='add'){
-          state.ans= state.n1 + state.n2;
-          document.getElementById('q-text').textContent=`${state.n1} + ${state.n2}`;
-          if(state.mode==='learn'){
-            const d1 = decomposeToFives(state.n1);
-            const d2 = decomposeToFives(state.n2);
-            decompDiv.innerHTML = `<div class="npart"><span class="tag">${state.n1} =</span>${d1}</div><div class="npart"><span class="tag">${state.n2} =</span>${d2}</div>`;
-            decompDiv.classList.remove('hidden');
-            hintBtn.classList.remove('hidden');
-          } else {
-            decompDiv.classList.add('hidden');
-            hintBtn.classList.add('hidden'); // QUIZ mode: hide hint
-          }
-
-          state.mode==='learn' ? drawAddition() : document.getElementById('visual-area').innerHTML='';
-        } else if(state.world==='sub'){
-          if(state.n1<state.n2) [state.n1,state.n2]=[state.n2,state.n1];
-          state.ans= state.n1 - state.n2;
-          document.getElementById('q-text').textContent=`${state.n1} - ${state.n2}`;
-          decompDiv.classList.add('hidden');
-          hintBtn.classList.add('hidden');
-          state.mode==='learn' ? drawSubtraction() : document.getElementById('visual-area').innerHTML='';
-        } else if(state.world==='mult'){
-          if(state.n1>12) state.n1=12;
-          state.ans= state.n1 * state.n2;
-          document.getElementById('q-text').textContent=`${state.n1} × ${state.n2}`;
-          decompDiv.classList.add('hidden');
-          hintBtn.classList.add('hidden');
-          state.mode==='learn' ? drawMultiplication() : document.getElementById('visual-area').innerHTML='';
-        }
-      }
-    }
-
-    function drawMultiplication(){
-      const area=document.getElementById('visual-area');
-      let gridHTML='<div class="mult-grid">';
-      let logicHTML=`<div class="logic-step-box ${state.showLogicBox ? '' : 'hidden'}"><strong>How to count:</strong><hr style="border:1px solid #fbc02d;">`;
-      let cellCount=1;
-      for(let r=1;r<=state.n1;r++){
-        gridHTML+='<div class="mult-row">';
-        for(let c=1;c<=state.n2;c++){
-          const isLast=(cellCount===state.n1*state.n2);
-          const display=(state.showMultNumbers && !isLast) ? cellCount : (isLast?'?':'');
-          gridHTML+=`<div class="mult-cell"><span class="block-num row-${r}">${display}</span></div>`; cellCount++;
-        }
-        gridHTML+='</div>';
-        if(r<state.n1){ logicHTML+=`<div class="logic-line row-${r}">${r} × ${state.n2} = ${r*state.n2}</div>`; }
-        else { logicHTML+=`<div class="logic-line row-${r}">${r} × ${state.n2} = ?</div>`; }
-      }
-      gridHTML+='</div>'; logicHTML+='</div>';
-      area.innerHTML=`<div class="mult-wrapper">${gridHTML}${logicHTML}</div>`;
-      const delay=(state.mode==='quiz')?0:state.multDelay;
-      setTimeout(()=>{ for(let r=1;r<=state.n1;r++){ setTimeout(()=>{ let els=document.querySelectorAll(`.row-${r}`); if(els.length) els.forEach(el=>el.classList.add('visible')); }, (r-1)*(delay*1000/state.n1)); } },100);
-    }
-
-    // ----- ADDITION helpers -----
-    function decomposeToFives(n){
-      if(n<=5) return (n===5) ? '5' : `${n}`;
-      let parts=[]; let remaining=n;
-      while(remaining>=5){ parts.push('5'); remaining-=5; }
-      if(remaining>0) parts.push(String(remaining));
-      return parts.join(' + ');
-    }
-
-    function renderHorizontal(containerId,count,redCount,applyRed=false){
-      const container=document.getElementById(containerId); container.innerHTML='';
-      const owner = (containerId==='visualNum1')? 'n1' : (containerId==='visualNum2'? 'n2' : 'sum');
-      let emptySquares=0; const rows=[]; const fullSquares=[];
-      for(let i=0;i<count;i+=5){
-        const squaresInRow=Math.min(5,count-i);
-        const row=document.createElement('div'); row.className='square-row';
-        const rowSquares=[];
-        for(let j=0;j<5;j++){
-          const sq=document.createElement('div'); sq.className='square';
-          sq.dataset.owner = owner; // tag ownership
-          if(j>=squaresInRow){ sq.classList.add('empty'); emptySquares++; }
-          else { fullSquares.push(sq); rowSquares.push(sq); }
-          row.appendChild(sq);
-        }
-        const label=document.createElement('div'); label.className='row-label'; label.textContent=squaresInRow; row.appendChild(label);
-        container.appendChild(row);
-        rows.push({el:row, label, fullCount:squaresInRow, rowSquares});
-      }
-      if(applyRed){
-        if(owner==='n2' && (state.n2 % 5 !== 0)){
-          for(let i=fullSquares.length-1; i>=0 && redCount>0; i--, redCount--){
-            fullSquares[i].classList.add('red');
-            fullSquares[i].dataset.originOwner = owner;
-            fullSquares[i].dataset.originColor = 'red';
-          }
-        }
-      }
-      if(owner==='n1'){
-        const remainder = count % 5;
-        if(remainder!==0 && rows.length){
-          const lastRow = rows[rows.length-1];
-          lastRow.rowSquares.forEach(sq=>{ sq.classList.add('blue'); sq.dataset.originOwner='n1'; sq.dataset.originColor='blue'; });
-        }
-      }
-      const allSquares = container.querySelectorAll('.square');
-      allSquares.forEach(sq=>{ sq.addEventListener('click', ()=> handleSquareClick(sq)); });
-      return { emptySquares, rows };
-    }
-
-    function handleSquareClick(sq){
-      const isRed = sq.classList.contains('red');
-      const isBlue = sq.classList.contains('blue');
-      if(!(isRed || isBlue)) return;
-      const owner = sq.dataset.owner; if(owner==='sum') return;
-      const dstContainer = (owner==='n1')? document.getElementById('visualNum2') : document.getElementById('visualNum1');
-      const destOwner = (dstContainer.id==='visualNum1')? 'n1' : 'n2';
-
-      let preRightFilled = null;
-      if(destOwner==='n2'){
-        const rowsRight = dstContainer.querySelectorAll('.square-row');
-        if(rowsRight.length){ const lastRight = rowsRight[rowsRight.length-1]; preRightFilled = lastRight.querySelectorAll('.square:not(.empty)').length; }
-      }
-
-      const rows = dstContainer.querySelectorAll('.square-row'); if(!rows.length) return;
-      const lastRow = rows[rows.length-1];
-      const empties = lastRow.querySelectorAll('.square.empty');
-      if(!empties.length){ sq.style.transform='scale(0.92)'; setTimeout(()=>{ sq.style.transform='scale(1)'; },120); return; }
-      const target = empties[0];
-
-      const originOwner = sq.dataset.originOwner || owner;
-      const originColor = sq.dataset.originColor || (isRed ? 'red' : 'blue');
-
-      if(owner==='n1' && destOwner==='n2') state.movedRightCount++; else if(owner==='n2' && destOwner==='n1'){ if(sq.dataset.movedFromLeft==='1') state.movedRightCount = Math.max(0, state.movedRightCount-1); }
-      const movedFromLeftFlag = (owner==='n1' && destOwner==='n2') ? '1' : (owner==='n2' && destOwner==='n1' ? '0' : (sq.dataset.movedFromLeft||'0'));
-
-      sq.classList.remove('red','blue'); sq.classList.add('empty'); delete sq.dataset.originOwner; delete sq.dataset.originColor; delete sq.dataset.movedFromLeft;
-      target.classList.remove('empty','red','blue'); if(isRed) target.classList.add('red'); else target.classList.add('blue');
-      target.dataset.owner = destOwner; target.dataset.originOwner = originOwner; target.dataset.originColor = originColor; target.dataset.movedFromLeft = movedFromLeftFlag;
-
-      updateTotalsFromDOM();
-
-      if(destOwner==='n2' && preRightFilled===4){ let note = document.getElementById('rightFiveNote'); if(!note){ note = document.createElement('div'); note.id='rightFiveNote'; note.className='five-note'; const rightCol = document.querySelector('#vc2 .label-column'); if(rightCol) rightCol.appendChild(note); } if(note) note.textContent = '4 + 1'; }
-      if(owner==='n2' && destOwner==='n1'){ const rightRows = document.querySelectorAll('#visualNum2 .square-row'); if(rightRows.length){ const lastRight = rightRows[rightRows.length-1]; const nowFilled = lastRight.querySelectorAll('.square:not(.empty)').length; if(nowFilled < 5){ const note = document.getElementById('rightFiveNote'); if(note) note.textContent=''; } } }
-    }
-
-    function updateTotalsFromDOM(){
-      const n1Filled = document.querySelectorAll('#visualNum1 .square:not(.empty)').length;
-      const n2Filled = document.querySelectorAll('#visualNum2 .square:not(.empty)').length;
-      const l1=document.getElementById('labelNum1'); if(l1) l1.textContent = `Total (current): ${n1Filled}`;
-      const l2=document.getElementById('labelNum2'); if(l2) l2.textContent = `Total (current): ${n2Filled}`;
-      const e1=document.getElementById('emptyCount1'); if(e1){ const empties = document.querySelectorAll('#visualNum1 .square.empty').length; e1.textContent = `Empty: ${empties}`; }
-      const e2=document.getElementById('emptyCount2'); if(e2){ const empties = document.querySelectorAll('#visualNum2 .square.empty').length; e2.textContent = `Empty: ${empties}`; }
-
-      let movedLbl = document.getElementById('movedRightLbl'); if(!movedLbl){ movedLbl = document.createElement('div'); movedLbl.id='movedRightLbl'; movedLbl.style.fontSize='0.9rem'; movedLbl.style.color='#2c3e50'; movedLbl.style.fontWeight='700'; document.querySelector('#vc2 .label-column').appendChild(movedLbl); }
-      movedLbl.textContent = `Moved ➜ Right: +${state.movedRightCount}`;
-
-      const rightRows = document.querySelectorAll('#visualNum2 .square-row'); if(rightRows.length){ const lastRight = rightRows[rightRows.length-1]; const nowFilled = lastRight.querySelectorAll('.square:not(.empty)').length; if(nowFilled < 5){ const note = document.getElementById('rightFiveNote'); if(note) note.textContent=''; } }
-    }
-
-    function drawAddition(){
-      document.getElementById('visual-area').innerHTML=`
-        <div class="visual-container" id="vc1">
-          <div class="label-column">
-            <div class="block-label" id="labelNum1"></div>
-            <div class="empty-count" id="emptyCount1"></div>
-          </div>
-          <div class="square-block" id="visualNum1"></div>
-        </div>
-        <div class="visual-container" id="vc2">
-          <div class="label-column">
-            <div class="block-label" id="labelNum2"></div>
-            <div class="empty-count" id="emptyCount2"></div>
-            <div id="rightFiveNote" class="five-note"></div>
-          </div>
-          <div class="square-block" id="visualNum2"></div>
-        </div>
-        <h3 id="sumLabel" class="hidden">Visual Sum</h3>
-        <div class="visual-container hidden" id="sumContainer">
-          <div class="label-column"><div class="block-label" id="labelSum"></div></div>
-          <div class="square-block" id="visualSum"></div>
-        </div>`;
-
-      document.getElementById('labelNum1').textContent=`Total (current): ${state.n1}`;
-      document.getElementById('labelNum2').textContent=`Total (current): ${state.n2}`;
-
-      const remainder= state.n1 % 5;
-      const neededToFive= remainder===0 ? 0 : (5 - remainder);
-      const redFromSecond = (state.n2 % 5 === 0) ? 0 : Math.min(neededToFive, state.n2);
-
-      renderHorizontal('visualNum1', state.n1, 0, false);
-      renderHorizontal('visualNum2', state.n2, redFromSecond, true);
-
-      updateTotalsFromDOM();
-    }
-
-    function buildSumPreserveColors(){
-      const sumLabel = document.getElementById('sumLabel'); const sumContainer = document.getElementById('sumContainer'); if(!sumLabel || !sumContainer) return; sumLabel.classList.remove('hidden'); sumContainer.classList.remove('hidden');
-      const srcBlocks = [ ...document.querySelectorAll('#visualNum1 .square:not(.empty)'), ...document.querySelectorAll('#visualNum2 .square:not(.empty)') ];
-      const total = srcBlocks.length; document.getElementById('labelSum').textContent = `Total: ${total}`;
-      const host = document.getElementById('visualSum'); host.innerHTML='';
-      for(let i=0;i<total;i+=5){ const row=document.createElement('div'); row.className='square-row'; for(let j=0;j<5;j++){ const idx=i+j; const sq=document.createElement('div'); sq.className='square'; if(idx < total){ const src = srcBlocks[idx]; if(src.classList.contains('red')) sq.classList.add('red'); else if(src.classList.contains('blue')) sq.classList.add('blue'); } else { sq.classList.add('empty'); } row.appendChild(sq);} host.appendChild(row);} }
-
-    function showHintSum(){ buildSumPreserveColors(); document.getElementById('sumLabel').scrollIntoView({ behavior:'smooth', block:'center' }); }
-
-    function drawSubtraction(){ document.getElementById('visual-area').innerHTML = `<div style=\"text-align:center; font-size:1.2rem;\">Visualize taking ${state.n2} units away from ${state.n1}.</div>`; }
-    function drawComparison(){ document.getElementById('visual-area').innerHTML = `
-        <div style=\"display:flex; align-items:center; gap:20px; font-size:64px; font-weight:bold; justify-content:center;\">
-          <div>${state.n1}</div>
-          <div id=\"target-box\" class=\"comp-target\" style=\"width:110px; height:110px; border:4px dashed #2c3e50; border-radius:16px; display:flex; align-items:center; justify-content:center;\">?</div>
-          <div>${state.n2}</div>
-        </div>`; }
-
-    function verify(isTimeout=false){
-      clearInterval(state.timerId);
-      let correct=false;
-      if(state.world==='comp'){
-        const actual= state.n1 < state.n2 ? '<' : (state.n1 > state.n2 ? '>' : '=');
-        correct=(state.selectedSymbol===actual);
-      } else {
-        const n1Filled = document.querySelectorAll('#visualNum1 .square:not(.empty)').length;
-        const n2Filled = document.querySelectorAll('#visualNum2 .square:not(.empty)').length;
-        correct=(parseInt(document.getElementById('math-ans').value)=== (n1Filled + n2Filled));
-      }
-      if(!isTimeout && correct){ document.getElementById('feedback-emoji').textContent='🏆'; document.getElementById('msg-box').textContent='Excellent!'; }
-      else { document.getElementById('feedback-emoji').textContent='😟'; document.getElementById('msg-box').textContent= isTimeout?"Time's Up!" : (state.world==='comp'? 'Answer: Check the symbol' : 'Check the total'); }
-
-      if(state.world==='add' && state.mode==='learn'){ buildSumPreserveColors(); }
-      document.getElementById('check-btn').classList.add('hidden');
-      document.getElementById('next-btn').classList.remove('hidden');
-      document.getElementById('math-ans').disabled=true;
-      document.getElementById('hint-btn').classList.add('hidden');
-    }
-
-    window.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ if(!document.getElementById('next-btn').classList.contains('hidden')) nextQ(); else verify(); } });
-  </script>
-
-  <!-- MAIN CRITICAL COMMENT MENU - DO NOT REMOE THIS COMMENT, NEVER, EVER, ASK, STOP AND ASK!!
-       YOU DO NOT HAVE RIGHT TO REMOVE IT AS IT CODE WILL BE DESTROYED ( CORREC ONLY THE GRAMMER OF THI COMMMENT)
-       !!! ADD AL MY REQUESTS ABOUT NOT REMOVING THINGS TO THIS SECTION BELOW WITH NUMBER AND DATE, TIME.
-       1. DO NOT REMOVE BACK TO MAIN MENU BUTTON
-       2. DO NOT REMOVE ANYTHING FROM THE SETTINGS, IF ASKED TO CHANGE EXPLAIN IMPLICATIONS BUT DO NOT CHANGE EXISTING.
-       3. DO NOT REMOVE ANYTHING FROM THE CODE BELOW WITHOUT ASKING OR SPECIFIC REQUEST. IF NOT CLEAR ASK IF YOU NDERSTAND IT RIGHT BEFORE REMOVING.
-       4. DO NOT REMOVE LEARN AND QUIZ MODES AND ALWAYS KEEP THEM IN THE SETTINGS
-  -->
+ <div id="app-wrapper">
+ <div id="top-timer-container"><div id="timer-progress"></div></div>
+ <div class="header-strip">
+ <div class="header-left">
+ <button class="btn btn-opt" onclick="goHome()">🏠 Menu</button>
+ <img src="steve.png" id="current-avatar" class="avatar-img" onclick="toggleSettings()" />
+ <button class="btn btn-opt" onclick="toggleInfo()">ℹ️ Info</button>
+ <div>
+ <span id="score-val" style="font-weight:bold; font-size:.9rem;">Score: 0</span><br />
+ <span id="exercise-count" style="font-size:.7rem; color:#ccc;">0/0</span>
+ </div>
+ </div>
+ <div id="mode-tag" style="font-size:.75rem; font-weight:bold; color:#f1c40f;">LEARN MODE</div>
+ <button class="btn btn-opt" onclick="toggleSettings()">⚙️</button>
+ </div>
+ <!-- SETTINGS -->
+ <div id="settings-menu" class="hidden">
+ <div style="display:flex; justify-content:space-between; align-items:center;">
+ <h3 style="margin:0;">Settings</h3>
+ <span id="ver-chip" style="font-size:.75rem; color:#888;">Ver 3.6</span>
+ </div>
+ <hr />
+ <button class="btn btn-opt" style="width:100%; margin-bottom:10px; background:#3498db; color:#fff;" onclick="toggleHistory()">📜 View Version Changes</button>
+ <div style="font-weight:bold; margin-bottom:5px;">Display:</div>
+ <div class="setting-row">
+ <span>Fullscreen (iPhone / Android)</span>
+ <button class="btn btn-opt" onclick="toggleFullscreenMobile()">📱 Toggle</button>
+ </div>
+ <div class="setting-row" style="align-items:flex-start;">
+ <span class="hint" style="font-size:.8rem; color:#666;">Tip: If Safari on iPhone won’t allow fullscreen, use <strong>Share → Add to Home Screen</strong>.</span>
+ </div>
+ <hr />
+ <div style="font-weight:bold; margin-bottom:5px;">App Mode:</div>
+ <div style="display:flex; gap:5px; margin-bottom:15px;">
+ <button id="mode-learn" class="btn btn-opt selected" style="flex:1" onclick="setMode('learn')">LEARN</button>
+ <button id="mode-quiz" class="btn btn-opt" style="flex:1" onclick="setMode('quiz')">QUIZ</button>
+ </div>
+ <div class="setting-row"><span>Timer:</span><input type="checkbox" id="cfg-timer-on" onchange="state.timerEnabled=this.checked" /></div>
+ <div class="setting-row"><span>Time (s):</span><input type="number" id="cfg-time" value="30" /></div>
+ <div class="setting-row"><span>Exercises:</span><input type="number" id="cfg-total" value="10" /></div>
+ <hr />
+ <div style="font-weight:bold; margin-bottom:5px;">Range:</div>
+ <div class="setting-row"><span>Min:</span><input type="number" id="cfg-min" value="1" /></div>
+ <div class="setting-row"><span>Max:</span><input type="number" id="cfg-max" value="10" /></div>
+ <hr />
+ <div style="font-weight:bold; margin-bottom:5px;">Multiplication Logic:</div>
+ <div class="setting-row"><span>Show Numbers:</span><input type="checkbox" id="cfg-mult-numbers" checked onchange="state.showMultNumbers=this.checked" /></div>
+ <div class="setting-row"><span>How to Count:</span><input type="checkbox" id="cfg-show-logic" checked onchange="state.showLogicBox=this.checked" /></div>
+ <div class="setting-row"><span>Ghost Delay (s):</span><input type="number" id="cfg-mult-delay" value="2" /></div>
+ <hr />
+ <button class="btn btn-add" style="width:100%" onclick="saveSettings()">Save & Close</button>
+ </div>
+ <!-- HISTORY -->
+ <div id="history-modal">
+ <h3 style="margin-top:0;">Version History</h3>
+ <div style="font-size:.9rem; line-height:1.4;">
+ <strong>v3.6</strong>: Compare: box with “?” that updates with clicked symbol; Division: Rows/Cols chip, numbers in boxes when Show Numbers is on, right labels show division form, click whole row to toggle (bottom‑up rule).
+ <br /><strong>v3.5</strong>: Division: bottom-up consecutive row removal; right labels show r×n₂=product; score equals visible cells.
+ <br /><strong>v3.4</strong>: Division: top-down rule; left labels r×n₂; score chip; wider row labels.
+ <br /><strong>v3.3</strong>: Division visuals polish; zebra rows; separators.
+ <br /><strong>v3.2</strong>: Quiz hides visuals; Show Numbers for all boxes; Division rows-only removable + right labels.
+ </div>
+ <hr />
+ <button class="btn btn-sub" style="width:100%" onclick="toggleHistory()">Close History</button>
+ </div>
+ <!-- FULLSCREEN HELP MODAL -->
+ <div id="fs-help-modal">
+ <h3>Fullscreen on iPhone</h3>
+ <div class="hint">If tapping <strong>Toggle</strong> didn’t hide Safari’s bars, try:</div>
+ <ol style="margin:6px 0 0 18px;">
+ <li>Tap <strong>Share</strong> (square with arrow).</li>
+ <li>Choose <strong>Add to Home Screen</strong>.</li>
+ <li>Open the app from your Home Screen icon for a chrome‑free view.</li>
+ </ol>
+ <div style="display:flex; justify-content:flex-end; margin-top:10px;"><button class="btn btn-opt" onclick="dismissFSHelp()">Close</button></div>
+ </div>
+ <!-- INFO MODAL -->
+ <div id="info-modal">
+ <h3 style="margin:0 0 6px 0;">How to Play & Settings</h3>
+ <div class="info-section">
+ <h4>Subtraction (Learn)</h4>
+ <ul class="info-list">
+ <li>Only click the <strong>second</strong> number’s boxes. <strong>Red</strong> = remove one blue on the left; click again (empty) to restore.</li>
+ </ul>
+ </div>
+ <div class="info-section">
+ <h4>Division</h4>
+ <ul class="info-list">
+ <li>Only divisible pairs appear. Remove/restore rows <strong>bottom‑up consecutively</strong> by clicking the row header or anywhere on the row.</li>
+ </ul>
+ </div>
+ <div style="display:flex; justify-content:flex-end; margin-top:8px; gap:8px;">
+ <button class="btn btn-opt" onclick="toggleInfo()">Close</button>
+ </div>
+ </div>
+ <!-- PORTAL -->
+ <div id="portal" class="screen active">
+ <h1 style="color:var(--ui-dark); text-align:center; margin:10px 0;">Steve's Math Universe</h1>
+ <div class="module-grid">
+ <button class="btn btn-add" onclick="launch('add')">ADDITION</button>
+ <button class="btn btn-sub" onclick="launch('sub')">SUBTRACTION</button>
+ <button class="btn btn-mult" onclick="launch('mult')">MULTIPLICATION</button>
+ <button class="btn" style="background:var(--comp-color);" onclick="launch('comp')">COMPARE</button>
+ <button class="btn" style="background:#3b82f6;" onclick="launch('div')">DIVISION</button>
+ </div>
+ <div class="module-divider"><span class="divider-text">Additional Modules</span></div>
+ <div class="module-grid">
+ <a href="#" class="btn btn-word">📖 MATH READING QUESTIONS</a>
+ <a href="#" class="btn" style="background:var(--build-color);">🏗️ NUMBER BLOCK BUILDER</a>
+ <a href="#" class="btn" style="background:var(--shoot-color); grid-column:span 2;">🎯 NUMBER SHOOTER</a>
+ </div>
+ </div>
+ <!-- GAME SCREEN -->
+ <div id="game-screen" class="screen">
+ <div id="logic-pane" style="width:100%; max-width:980px; background:#fff; padding:15px; border-radius:15px; border:2px solid #ddd; display:flex; flex-direction:column; align-items:center;">
+ <div class="eqn-bar">
+ <h1 id="q-text" style="font-size:38px; margin:0;"></h1>
+ <div id="compare-strip">
+ <button class="comp-btn" onclick="selectSymbol('<')"><</button>
+ <button class="comp-btn" onclick="selectSymbol('=')">=</button>
+ <button class="comp-btn" onclick="selectSymbol('>')">></button>
+ </div>
+ </div>
+ <div id="answer-strip" class="answer-strip">
+ <div id="standard-input-ui" style="display:flex; align-items:center; gap:10px;">
+ <button class="arrow-btn" onclick="step(-1)">▼</button>
+ <input type="number" id="math-ans" class="math-input" placeholder="?" />
+ <button class="arrow-btn" onclick="step(1)">▲</button>
+ </div>
+ <button id="check-btn" class="btn" style="background: var(--ui-dark);" onclick="verify()">Check Answer</button>
+ <button id="next-btn" class="btn btn-add hidden" onclick="nextQ()">Next →</button>
+ </div>
+ <button id="hint-btn" class="btn hidden" onclick="toggleHint()">💡 Hint: Visual Sum</button>
+ <div id="hint-countdown" class="hidden"></div>
+ <div id="five-decomp" class="five-decomp hidden"></div>
+ <div id="visual-area" style="width:100%; margin-top:10px;"></div>
+ </div>
+ <div style="width:100%; max-width:560px; display:flex; flex-direction:column; align-items:center; margin-top:10px; gap:10px; padding-bottom: env(safe-area-inset-bottom);">
+ <div id="feedback-emoji" style="font-size:46px; height:46px;"></div>
+ <div id="msg-box" style="margin:2px; font-weight:bold; text-align:center; min-height:20px;"></div>
+ </div>
+ </div>
+ </div>
+ <script>
+ const APP_VERSION = '3.6';
+ let state = { world:'add', mode:'learn', min:1, max:10, n1:0, n2:0, ans:0, score:0,
+ timerEnabled:false, timeLimit:30, totalExercises:10, currentIdx:0,
+ multDelay:2, showMultNumbers:true, showLogicBox:true, timerId:null,
+ selectedSymbol:'', movedRightCount:0,
+ subRemoved:0,
+ divRemovedCols: new Set(), divRemovedRows: new Set() };
+ // Hint toggle + auto-hide
+ let hintTimer = null; let hintCountdownTimer = null; let hintSecondsLeft = 0;
+ function toggleSettings(){ document.getElementById('settings-menu').classList.toggle('hidden'); }
+ function toggleHistory(){ const m=document.getElementById('history-modal'); m.style.display=(m.style.display==='block')?'none':'block'; }
+ function toggleInfo(){ const m=document.getElementById('info-modal'); m.style.display=(m.style.display==='block')?'none':'block'; }
+ async function toggleFullscreenMobile(){
+ const el = document.documentElement;
+ try{ if(document.fullscreenElement){ await document.exitFullscreen(); return; }
+ if(el.requestFullscreen){ await el.requestFullscreen(); }
+ else if(el.webkitRequestFullscreen){ el.webkitRequestFullscreen(); }
+ else { throw new Error('Fullscreen API not available'); }
+ }catch(err){ showFSHelp(); }
+ }
+ function showFSHelp(){ const m=document.getElementById('fs-help-modal'); if(m){ m.style.display='block'; } }
+ function dismissFSHelp(){ const m=document.getElementById('fs-help-modal'); if(m){ m.style.display='none'; } }
+ function setMode(m){ state.mode=m; document.getElementById('mode-learn').classList.toggle('selected',m==='learn'); document.getElementById('mode-quiz').classList.toggle('selected',m==='quiz'); document.getElementById('mode-tag').textContent=m.toUpperCase()+" MODE"; }
+ function goHome(){ clearInterval(state.timerId); document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById('portal').classList.add('active'); }
+ function saveSettings(){
+ state.timeLimit= parseInt(document.getElementById('cfg-time').value) || 30;
+ state.totalExercises= parseInt(document.getElementById('cfg-total').value) || 10;
+ const minEl = document.getElementById('cfg-min'); const maxEl = document.getElementById('cfg-max');
+ if(minEl && maxEl){ state.min= parseInt(minEl.value); state.max= parseInt(maxEl.value); }
+ state.multDelay= parseInt(document.getElementById('cfg-mult-delay').value);
+ state.showMultNumbers= document.getElementById('cfg-mult-numbers').checked;
+ state.showLogicBox= document.getElementById('cfg-show-logic').checked;
+ state.timerEnabled= document.getElementById('cfg-timer-on').checked;
+ toggleSettings();
+ if (document.getElementById('game-screen').classList.contains('active') && document.getElementById('next-btn').classList.contains('hidden')){
+ refreshCurrentVisuals(); startTimer();
+ }
+ }
+ function launch(w){ state.world=w; state.currentIdx=0; state.score=0; nextQ(); }
+ function step(v){ const i=document.getElementById('math-ans'); i.value=Math.max(0,(parseInt(i.value) || 0)+v); }
+ function selectSymbol(s){
+ state.selectedSymbol = s;
+ const box = document.getElementById('target-box');
+ if(box){ box.textContent = s; box.style.color = "var(--mult-color)"; box.style.borderColor = "var(--mult-color)"; }
+ }
+ function startTimer(){
+ clearInterval(state.timerId);
+ const bar=document.getElementById('timer-progress');
+ if(!state.timerEnabled){ bar.style.width='0%'; return; }
+ let remaining=state.timeLimit; bar.style.width='100%';
+ state.timerId=setInterval(()=>{ remaining--; bar.style.width=(remaining/state.timeLimit*100)+'%'; if(remaining<=0){ clearInterval(state.timerId); verify(true); } },1000);
+ }
+ function nextQ(){
+ state.currentIdx++;
+ if(state.currentIdx>state.totalExercises){ alert('Session Over! Score: '+state.score); goHome(); return; }
+ document.getElementById('exercise-count').textContent=`${state.currentIdx}/${state.totalExercises}`;
+ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+ document.getElementById('game-screen').classList.add('active');
+ document.getElementById('next-btn').classList.add('hidden');
+ document.getElementById('check-btn').classList.remove('hidden');
+ document.getElementById('msg-box').textContent='';
+ document.getElementById('feedback-emoji').textContent='';
+ document.getElementById('math-ans').value='';
+ document.getElementById('math-ans').disabled=false;
+ document.getElementById('hint-btn').classList.add('hidden');
+ hideHintImmediate();
+ state.selectedSymbol='';
+ // Generate numbers
+ if(state.world==='div'){
+ let tries=0;
+ while(true){
+ state.n2 = Math.max(1, Math.floor(Math.random()*(state.max-state.min+1))+state.min);
+ state.n1 = Math.floor(Math.random()*(state.max-state.min+1))+state.min;
+ if(state.n2!==0 && state.n1 % state.n2 === 0) break;
+ tries++; if(tries>200){ state.n1=8; state.n2=4; break; }
+ }
+ } else {
+ state.n1= Math.floor(Math.random()*(state.max-state.min+1))+state.min;
+ state.n2= Math.floor(Math.random()*(state.max-state.min+1))+state.min;
+ if(state.world==='sub' && state.n1<state.n2){ const t=state.n1; state.n1=state.n2; state.n2=t; }
+ }
+ state.movedRightCount=0; state.subRemoved=0; state.divRemovedCols.clear(); state.divRemovedRows.clear();
+ refreshCurrentVisuals();
+ startTimer();
+ }
+ function refreshCurrentVisuals(){
+ const hintBtn=document.getElementById('hint-btn');
+ const decompDiv=document.getElementById('five-decomp');
+ const compareStrip=document.getElementById('compare-strip');
+ const visualArea = document.getElementById('visual-area');
+ if (state.mode === 'quiz') {
+ if (visualArea) { visualArea.innerHTML = ''; }
+ if (decompDiv) decompDiv.classList.add('hidden');
+ if (hintBtn) hintBtn.classList.add('hidden');
+ }
+ if(state.world==='comp'){
+ document.getElementById('q-text').innerHTML = `${state.n1} <span id="target-box" class="comp-target-box">?</span> ${state.n2}`;
+ compareStrip.style.display='flex';
+ document.getElementById('standard-input-ui').classList.add('hidden');
+ if (visualArea) { visualArea.innerHTML=''; }
+ hintBtn.classList.add('hidden'); decompDiv.classList.add('hidden');
+ } else {
+ compareStrip.style.display='none';
+ document.getElementById('standard-input-ui').classList.remove('hidden');
+ if(state.world==='add'){
+ state.ans= state.n1 + state.n2;
+ document.getElementById('q-text').textContent=`${state.n1} + ${state.n2}`;
+ if(state.mode==='learn'){
+ const d1 = decomposeToFives(state.n1); const d2 = decomposeToFives(state.n2);
+ decompDiv.innerHTML = `<div class="npart"><span class="tag">${state.n1} =</span>${d1}</div><div class="npart"><span class="tag">${state.n2} =</span>${d2}</div>`;
+ decompDiv.classList.remove('hidden'); hintBtn.classList.remove('hidden');
+ } else { decompDiv.classList.add('hidden'); hintBtn.classList.add('hidden'); }
+ if (state.mode === 'learn') { drawAddition(); } else { if (visualArea) visualArea.innerHTML=''; }
+ } else if(state.world==='sub'){
+ state.ans= state.n1 - state.n2;
+ document.getElementById('q-text').textContent=`${state.n1} - ${state.n2}`;
+ if(state.mode==='learn'){
+ decompDiv.classList.remove('hidden');
+ const d1 = decomposeToFives(state.n1); const d2 = decomposeToFives(state.n2);
+ decompDiv.innerHTML = `<div class="npart"><span class="tag">${state.n1} =</span>${d1}</div><div class="npart"><span class="tag">Take away =</span>${d2}</div>`;
+ hintBtn.classList.add('hidden');
+ drawSubtractionLearn();
+ } else { decompDiv.classList.add('hidden'); hintBtn.classList.add('hidden'); if (visualArea) visualArea.innerHTML=''; }
+ } else if(state.world==='mult'){
+ state.ans= state.n1 * state.n2;
+ document.getElementById('q-text').textContent=`${state.n1} × ${state.n2}`;
+ decompDiv.classList.add('hidden'); hintBtn.classList.add('hidden');
+ if (state.mode === 'learn') { drawMultiplication(); } else { if (visualArea) visualArea.innerHTML=''; }
+ } else if(state.world==='div'){
+ state.ans = Math.floor(state.n1 / state.n2);
+ document.getElementById('q-text').textContent=`${state.n1} ÷ ${state.n2}`;
+ decompDiv.classList.add('hidden'); hintBtn.classList.add('hidden');
+ if (state.mode === 'learn') { drawDivision(); } else { if (visualArea) visualArea.innerHTML=''; }
+ }
+ }
+ const verChip = document.getElementById('ver-chip'); if(verChip) verChip.textContent = 'Ver ' + APP_VERSION;
+ }
+ function drawMultiplication(){
+ const area=document.getElementById('visual-area');
+ let top = '<div class="array-top">'; for(let c=1;c<=state.n2;c++){ top+=`<div class="hdr">${c}</div>`;} top+='</div>';
+ let body='';
+ let cellCount=1; let logicHTML=`<div class="logic-step-box ${state.showLogicBox ? '' : 'hidden'}"><strong>How to count:</strong><hr style="border:1px solid #fbc02d;">`;
+ for(let r=1;r<=state.n1;r++){
+ body += `<div class="array-row"><div class="row-hdr">${r}</div>`;
+ for(let c=1;c<=state.n2;c++){
+ const display = state.showMultNumbers ? cellCount : '';
+ body += `<div class="cell"><span class="block-num row-${r}">${display}</span></div>`; cellCount++;
+ }
+ body += '</div>';
+ if(r<state.n1){ logicHTML+=`<div class="logic-line row-${r}">${r} × ${state.n2} = ${r*state.n2}</div>`; } else { logicHTML+=`<div class="logic-line row-${r}">${r} × ${state.n2} = ?</div>`; }
+ }
+ logicHTML+='</div>';
+ area.innerHTML = `<div class="array-wrapper"><div class="array-table">${top}<div class="array-body">${body}</div></div>${logicHTML}</div>`;
+ const delay=(state.mode==='quiz')?0:state.multDelay; setTimeout(()=>{ for(let r=1;r<=state.n1;r++){ setTimeout(()=>{ document.querySelectorAll('.row-'+r).forEach(el=>el.classList.add('visible')); }, (r-1)*(delay*1000/state.n1)); } },100);
+ }
+ function drawDivision(){
+ const area=document.getElementById('visual-area');
+ const q = Math.floor(state.n1 / state.n2);
+ let top = '<div class="array-top">';
+ for(let c=1;c<=state.n2;c++){
+ const blue = ' blueHdr';
+ top+=`<div class="hdr${blue}" data-col="${c}" style="cursor:default;">${c}</div>`;
+ }
+ top+=`<div class="div-score-chip">Score: ${state.score}</div>`;
+ top+=`<div class="div-dim-chip">Rows: ${q} | Cols: ${state.n2}</div>`;
+ top+='</div>';
+ let body='';
+ let filled = state.n1; 
+ for(let r=1;r<=q;r++){
+ const rRemoved = state.divRemovedRows.has(r)?' removed':'';
+ const blueRow = (!state.divRemovedRows.has(r)) ? ' blueHdr' : '';
+ const zebra = (r % 2 === 0) ? ' row-even' : ' row-odd';
+ body += `<div class="array-row${zebra}" data-row="${r}"><div class="row-hdr${rRemoved}${blueRow}" data-row="${r}">${r} × ${state.n2}</div>`;
+ let serial = 1;
+ for(let c=1;c<=state.n2;c++){
+ const activeCol = true;
+ const activeRow = !state.divRemovedRows.has(r);
+ const shouldFill = (filled>0);
+ let cls = 'cell';
+ let inner='';
+ if(!(activeCol && activeRow && shouldFill)) cls += ' empty';
+ else { if(state.showMultNumbers){ inner = `<span class=\"block-num\">${serial}</span>`; } serial++; }
+ if(c===1) cls += ' thick-left';
+ if(c===state.n2) cls += ' thick-right';
+ if(r===1) cls += ' thick-top';
+ if(r===q) cls += ' thick-bottom';
+ body += `<div class="${cls}" data-r="${r}" data-c="${c}">${inner}</div>`;
+ if(activeCol && activeRow && shouldFill) filled--;
+ }
+ body += `<div class="row-hdr row-hdr-right${rRemoved}${blueRow}" data-row="${r}">${r*state.n2} ÷ ${state.n2} = ${r}</div></div>`;
+ }
+ area.innerHTML = `<div class="array-wrapper"><div class="array-table">${top}<div class="array-body">${body}</div></div></div>`;
+ const toggleRowWithRule = (r, el)=>{
+  const q = Math.floor(state.n1 / state.n2);
+  let m=0; for(let i=q;i>=1;i--){ if(state.divRemovedRows.has(i)) m++; else break; }
+  const isRemoved = state.divRemovedRows.has(r);
+  if(!isRemoved){ if(r === (q - m)){ state.divRemovedRows.add(r); drawDivision(); } else { if(el){ el.style.transform='scale(0.96)'; setTimeout(()=>{ el.style.transform=''; },120);} } }
+  else { if(r === (q - m + 1)){ state.divRemovedRows.delete(r); drawDivision(); } else { if(el){ el.style.transform='scale(0.96)'; setTimeout(()=>{ el.style.transform=''; },120);} } }
+ };
+ document.querySelectorAll('.array-body .row-hdr').forEach(h=>{ h.addEventListener('click', (e)=>{ e.stopPropagation(); const r = parseInt(h.dataset.row); toggleRowWithRule(r, h); }); });
+ document.querySelectorAll('.array-body .array-row').forEach(row=>{ row.addEventListener('click', ()=>{ const r = parseInt(row.dataset.row||'0'); if(r) toggleRowWithRule(r, row); }); });
+ const visibleCells = area.querySelectorAll('.cell:not(.empty)').length;
+ state.score = visibleCells;
+ const chip = document.querySelector('.div-score-chip'); if(chip){ chip.textContent = 'Score: ' + state.score; }
+ const sv = document.getElementById('score-val'); if(sv){ sv.textContent = 'Score: ' + state.score; }
+ }
+ function decomposeToFives(n){ if(n<=5) return (n===5) ? '5' : `${n}`; let parts=[]; let remaining=n; while(remaining>=5){ parts.push('5'); remaining-=5; } if(remaining>0) parts.push(String(remaining)); return parts.join(' + '); }
+ function renderHorizontal(containerId,count,redCount,applyRed=false){
+ const container=document.getElementById(containerId); container.innerHTML='';
+ const owner = (containerId==='visualNum1')? 'n1' : (containerId==='visualNum2'? 'n2' : 'sum');
+ let rows=[]; let fullSquares=[]; let serial = 1;
+ for(let i=0;i<count;i+=5){ const squaresInRow=Math.min(5,count-i); const row=document.createElement('div'); row.className='square-row'; const rowSquares=[]; for(let j=0;j<5;j++){ const sq=document.createElement('div'); sq.className='square'; sq.dataset.owner = owner; if(j>=squaresInRow){ sq.classList.add('empty'); } else { fullSquares.push(sq); rowSquares.push(sq); if (state.showMultNumbers){ const num=document.createElement('span'); num.style.fontSize='11px'; num.style.color='#fff'; num.textContent = serial++; sq.appendChild(num);} } row.appendChild(sq);} const label=document.createElement('div'); label.className='row-label'; label.textContent=squaresInRow; row.appendChild(label); container.appendChild(row); rows.push({el:row, label, rowSquares}); }
+ if(applyRed){ if(owner==='n2' && (state.n2 % 5 !== 0)){ for(let i=fullSquares.length-1, left=redCount; i>=0 && left>0; i--, left--){ fullSquares[i].classList.add('red'); fullSquares[i].dataset.originOwner = owner; fullSquares[i].dataset.originColor = 'red'; } } }
+ if(owner==='n1'){ const remainder = count % 5; if(remainder!==0 && rows.length){ const lastRow = rows[rows.length-1]; }
+ }
+ const allSquares = container.querySelectorAll('.square'); allSquares.forEach(sq=>{ sq.addEventListener('click', ()=> handleSquareClick(sq)); }); return { rows, fullSquares };
+ }
+ function handleSquareClick(sq){
+ if(state.world==='sub' && state.mode==='learn'){
+ const owner = sq.dataset.owner; if(owner==='n1') return; 
+ if(owner==='n2'){
+ if(sq.classList.contains('red')){
+ const candidates = Array.from(document.querySelectorAll('#visualNum1 .square[data-subcandidate="1"]'));
+ const filledBlue = candidates.filter(x=>!x.classList.contains('empty'));
+ if(filledBlue.length){ const last = filledBlue[filledBlue.length-1]; last.classList.add('empty'); last.classList.remove('blue'); state.subRemoved++; sq.classList.remove('red'); sq.classList.add('empty'); }
+ updateSubtractionLabels();
+ } else if(sq.classList.contains('empty')){
+ const candidates = Array.from(document.querySelectorAll('#visualNum1 .square[data-subcandidate="1"]'));
+ const emptyCand = candidates.filter(x=>x.classList.contains('empty'));
+ if(emptyCand.length){ const first = emptyCand[0]; first.classList.remove('empty'); first.classList.add('blue'); state.subRemoved = Math.max(0, state.subRemoved-1); sq.classList.remove('empty'); sq.classList.add('red'); }
+ updateSubtractionLabels();
+ }
+ }
+ return;
+ }
+ const isRed = sq.classList.contains('red'); const isBlue = sq.classList.contains('blue');
+ if(!(isRed || isBlue)) return; const owner = sq.dataset.owner; if(owner==='sum') return;
+ const dstContainer = (owner==='n1')? document.getElementById('visualNum2') : document.getElementById('visualNum1'); const destOwner = (dstContainer.id==='visualNum1')? 'n1' : 'n2';
+ const rows = dstContainer.querySelectorAll('.square-row'); if(!rows.length) return; const lastRow = rows[rows.length-1]; const empties = lastRow.querySelectorAll('.square.empty'); if(!empties.length){ sq.style.transform='scale(0.92)'; setTimeout(()=>{ sq.style.transform='scale(1)'; },120); return; }
+ const target = empties[0]; const originOwner = sq.dataset.originOwner || owner; const originColor = sq.dataset.originColor || (isRed ? 'red' : 'blue');
+ if(owner==='n1' && destOwner==='n2') state.movedRightCount++; else if(owner==='n2' && destOwner==='n1'){ if(sq.dataset.movedFromLeft==='1') state.movedRightCount = Math.max(0, state.movedRightCount-1); }
+ const movedFromLeftFlag = (owner==='n1' && destOwner==='n2') ? '1' : (owner==='n2' && destOwner==='n1' ? '0' : (sq.dataset.movedFromLeft || '0'));
+ sq.classList.remove('red','blue'); sq.classList.add('empty'); delete sq.dataset.originOwner; delete sq.dataset.originColor; delete sq.dataset.movedFromLeft;
+ target.classList.remove('empty','red','blue'); if(isRed) target.classList.add('red'); else target.classList.add('blue'); target.dataset.owner = destOwner; target.dataset.originOwner = originOwner; target.dataset.originColor = originColor; target.dataset.movedFromLeft = movedFromLeftFlag;
+ updateTotalsFromDOM(); updateRowLabels('visualNum1'); updateRowLabels('visualNum2');
+ }
+ function updateTotalsFromDOM(){
+ const n1Filled = document.querySelectorAll('#visualNum1 .square:not(.empty)').length; const n2Filled = document.querySelectorAll('#visualNum2 .square:not(.empty)').length;
+ const l1=document.getElementById('labelNum1'); if(l1) l1.textContent = `Total (current): ${n1Filled}`;
+ const l2=document.getElementById('labelNum2'); if(l2) l2.textContent = `Total (current): ${n2Filled}`;
+ const e2=document.getElementById('emptyCount2'); if(e2){ const empties = document.querySelectorAll('#visualNum2 .square.empty').length; e2.textContent = `Empty: ${empties}`; }
+ let movedLbl = document.getElementById('movedRightLbl'); if(!movedLbl){ movedLbl = document.createElement('div'); movedLbl.id='movedRightLbl'; movedLbl.style.fontSize='0.9rem'; movedLbl.style.color='#2c3e50'; movedLbl.style.fontWeight='700'; const holder=document.querySelector('#vc2 .label-column'); if(holder) holder.appendChild(movedLbl); }
+ movedLbl.textContent = `Moved ➜ Right: +${state.movedRightCount}`;
+ }
+ function updateRowLabels(containerId){ const rows = document.querySelectorAll(`#${containerId} .square-row`); rows.forEach(row=>{ const count = row.querySelectorAll('.square:not(.empty)').length; const lab = row.querySelector('.row-label'); if(lab) lab.textContent = count; }); }
+ function drawAddition(){
+ document.getElementById('visual-area').innerHTML=` 
+ <div class="visual-container" id="vc1"> 
+ <div class="label-column"> 
+ <div class="block-label" id="labelNum1"></div> 
+ </div> 
+ <div class="square-block" id="visualNum1"></div> 
+ </div> 
+ <div class="visual-container" id="vc2"> 
+ <div class="label-column"> 
+ <div class="block-label" id="labelNum2"></div> 
+ <div class="empty-count" id="emptyCount2"></div> 
+ <div id="rightFiveNote" class="five-note"></div> 
+ </div> 
+ <div class="square-block" id="visualNum2"></div> 
+ </div> 
+ <h3 id="sumLabel" class="hidden">Visual Sum</h3> 
+ <div class="visual-container hidden" id="sumContainer"> 
+ <div class="label-column"><div class="block-label" id="labelSum"></div></div> 
+ <div class="square-block" id="visualSum"></div> 
+ </div>`;
+ document.getElementById('labelNum1').textContent=`Total (current): ${state.n1}`;
+ document.getElementById('labelNum2').textContent=`Total (current): ${state.n2}`;
+ const remainder= state.n1 % 5; const neededToFive= remainder===0 ? 0 : (5 - remainder); const redFromSecond = (state.n2 % 5 === 0) ? 0 : Math.min(neededToFive, state.n2);
+ renderHorizontal('visualNum1', state.n1, 0, false); renderHorizontal('visualNum2', state.n2, redFromSecond, true);
+ updateTotalsFromDOM(); updateRowLabels('visualNum1'); updateRowLabels('visualNum2');
+ }
+ function drawSubtractionLearn(){
+ const area=document.getElementById('visual-area');
+ area.innerHTML = ` 
+ <div class="visual-container" id="vc1"> 
+ <div class="label-column"> 
+ <div class="block-label" id="labelMinuend"></div> 
+ </div> 
+ <div class="square-block" id="visualNum1"></div> 
+ </div> 
+ <div class="visual-container" id="vcSub"> 
+ <div class="label-column"> 
+ <div class="block-label" id="labelTake"></div> 
+ </div> 
+ <div class="square-block" id="visualTake"></div> 
+ </div>`;
+ renderHorizontal('visualNum1', state.n1, 0, false);
+ const leftFilled = Array.from(document.querySelectorAll('#visualNum1 .square:not(.empty)'));
+ let toMark = Math.min(state.n2, leftFilled.length);
+ for(let i=leftFilled.length-1; i>=0 && toMark>0; i--, toMark--){ leftFilled[i].classList.add('blue'); leftFilled[i].dataset.subcandidate='1'; }
+ buildTakePanel('visualTake', state.n2, true);
+ state.subRemoved = 0; updateSubtractionLabels();
+ document.querySelectorAll('#visualTake .square').forEach(sq=>{ sq.addEventListener('click', ()=> handleSquareClick(sq)); });
+ }
+ function buildTakePanel(id,count,startRed=false){ const host=document.getElementById(id); host.innerHTML=''; let serial=1; for(let i=0;i<count;i+=5){ const squaresInRow=Math.min(5,count-i); const row=document.createElement('div'); row.className='square-row'; for(let j=0;j<5;j++){ const sq=document.createElement('div'); sq.className='square'; sq.dataset.owner='n2'; if(j>=squaresInRow) sq.classList.add('empty'); else if(startRed) { sq.classList.add('red'); if (state.showMultNumbers){ const num=document.createElement('span'); num.style.fontSize='11px'; num.style.color='#fff'; num.textContent = serial++; sq.appendChild(num);} } else sq.classList.add('empty'); row.appendChild(sq);} const label=document.createElement('div'); label.className='row-label'; label.textContent=squaresInRow; row.appendChild(label); host.appendChild(row);} }
+ function updateSubtractionLabels(){ const leftFilled = document.querySelectorAll('#visualNum1 .square:not(.empty)').length; const leftLab = document.getElementById('labelMinuend'); if(leftLab) leftLab.textContent = `Remaining (current): ${leftFilled}`; const takeLab = document.getElementById('labelTake'); if(takeLab) takeLab.textContent = `Take away: ${state.n2}`; updateRowLabels('visualNum1'); }
+ function buildSumPreserveColors(){ const sumLabel = document.getElementById('sumLabel'); const sumContainer = document.getElementById('sumContainer'); if(!sumLabel || !sumContainer) return; sumLabel.classList.remove('hidden'); sumContainer.classList.remove('hidden'); const srcBlocks = [ ...document.querySelectorAll('#visualNum1 .square:not(.empty)'), ...document.querySelectorAll('#visualNum2 .square:not(.empty)') ]; const total = srcBlocks.length; document.getElementById('labelSum').textContent = `Total: ${total}`; const host = document.getElementById('visualSum'); host.innerHTML=''; for(let i=0;i<total;i+=5){ const row=document.createElement('div'); row.className='square-row'; for(let j=0;j<5;j++){ const idx=i+j; const sq=document.createElement('div'); sq.className='square'; if(idx < total){ const src = srcBlocks[idx]; if(src.classList.contains('red')) sq.classList.add('red'); else if(src.classList.contains('blue')) sq.classList.add('blue'); } else { sq.classList.add('empty'); } row.appendChild(sq);} host.appendChild(row);} }
+ function startHintCountdown(seconds){ clearTimeout(hintTimer); clearInterval(hintCountdownTimer); const cd = document.getElementById('hint-countdown'); hintSecondsLeft = seconds; cd.classList.remove('hidden'); cd.textContent = `Hiding hint in ${hintSecondsLeft}…`; hintCountdownTimer = setInterval(()=>{ hintSecondsLeft--; cd.textContent = `Hiding hint in ${hintSecondsLeft}…`; if(hintSecondsLeft<=0){ clearInterval(hintCountdownTimer); hideHintImmediate(); } }, 1000); hintTimer = setTimeout(()=>{ hideHintImmediate(); }, seconds*1000 + 200); }
+ function hideHintImmediate(){ clearTimeout(hintTimer); clearInterval(hintCountdownTimer); const sumLabel=document.getElementById('sumLabel'); const sumContainer=document.getElementById('sumContainer'); const cd=document.getElementById('hint-countdown'); if(sumLabel) sumLabel.classList.add('hidden'); if(sumContainer) sumContainer.classList.add('hidden'); if(cd){ cd.classList.add('hidden'); cd.textContent=''; } }
+ function toggleHint(){ const sumContainer=document.getElementById('sumContainer'); if(sumContainer.classList.contains('hidden')){ buildSumPreserveColors(); startHintCountdown(5); } else { hideHintImmediate(); } }
+ function verify(isTimeout=false){
+ clearInterval(state.timerId);
+ let correct=false;
+ if(state.world==='comp'){
+ const actual= state.n1 < state.n2 ? '<' : (state.n1 > state.n2 ? '>' : '=');
+ correct=(state.selectedSymbol===actual);
+ } else if(state.world==='add'){
+ const n1Filled = document.querySelectorAll('#visualNum1 .square:not(.empty)').length; const n2Filled = document.querySelectorAll('#visualNum2 .square:not(.empty)').length; correct=(parseInt(document.getElementById('math-ans').value)=== (n1Filled + n2Filled));
+ } else if(state.world==='sub'){
+ const leftFilled = document.querySelectorAll('#visualNum1 .square:not(.empty)').length; correct=(parseInt(document.getElementById('math-ans').value)=== leftFilled);
+ } else if(state.world==='mult'){
+ correct=(parseInt(document.getElementById('math-ans').value)=== state.n1*state.n2);
+ } else if(state.world==='div'){
+ const activeRows = Array.from(document.querySelectorAll('.array-body .array-row'));
+ let filledActiveCells=0;
+ activeRows.forEach((row,ridx)=>{
+ if(state.divRemovedRows.has(ridx+1)) return;
+ row.querySelectorAll('.cell').forEach((cell)=>{ if(!cell.classList.contains('empty')) filledActiveCells++; });
+ });
+ const divisor = Math.max(1, state.n2);
+ const computedQ = Math.floor(filledActiveCells / divisor);
+ correct = (parseInt(document.getElementById('math-ans').value)=== computedQ);
+ }
+ if(!isTimeout && correct){ document.getElementById('feedback-emoji').textContent='🏆'; document.getElementById('msg-box').textContent='Excellent!'; }
+ else { document.getElementById('feedback-emoji').textContent='😟'; document.getElementById('msg-box').textContent= isTimeout?"Time's Up!" : 'Check your answer'; }
+ if(state.world==='add' && state.mode==='learn'){ buildSumPreserveColors(); }
+ document.getElementById('check-btn').classList.add('hidden');
+ document.getElementById('next-btn').classList.remove('hidden');
+ const ansEl=document.getElementById('math-ans'); ansEl.disabled=true;
+ document.getElementById('hint-btn').classList.add('hidden');
+ }
+ window.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ if(!document.getElementById('next-btn').classList.contains('hidden')) nextQ(); else verify(); } });
+ </script>
+ <!-- MAIN CRITICAL COMMENT MENU - DO NOT REMOE THIS COMMENT, NEVER, EVER, ASK, STOP AND ASK!!
+ YOU DO NOT HAVE RIGHT TO REMOVE IT AS IT CODE WILL BE DESTROYED ( CORREC ONLY THE GRAMMER OF THI COMMMENT)
+ !!! ADD AL MY REQUESTS ABOUT NOT REMOVING THINGS TO THIS SECTION BELOW WITH NUMBER AND DATE, TIME.
+ 1. DO NOT REMOVE BACK TO MAIN MENU BUTTON
+ 2. DO NOT REMOVE ANYTHING FROM THE SETTINGS, IF ASKED TO CHANGE EXPLAIN IMPLICATIONS BUT DO NOT CHANGE EXISTING.
+ 3. DO NOT REMOVE ANYTHING FROM THE CODE BELOW WITHOUT ASKING OR SPECIFIC REQUEST. IF NOT CLEAR ASK IF YOU NDERSTAND IT RIGHT BEFORE REMOVING.
+ 4. DO NOT REMOVE LEARN AND QUIZ MODES AND ALWAYS KEEP THEM IN THE SETTINGS
+ -->
 </body>
 </html>
